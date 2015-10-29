@@ -103,9 +103,11 @@ int main()
     Action::GetInstance()->Start(1);
     while(Action::GetInstance()->IsRunning()) usleep(8*1000);
 
+	cout << "Dummy";
+	
     while(1)
     {
-      walk(cm730);	
+      walk(cm730);
     }
 
     return 0;
