@@ -2,13 +2,14 @@
 //
 
 #include "Motion.h"
+#include "stdafx.h"
 
 using namespace std;
 using namespace cv;
 
 int main(){
-
-	Mat im = imread("C:\\ProgramData\\ITE\\Test Content\\Build_Environment\\Source\\DllTool\\DllTool\\Photos\\CIMG6921.JPG");
+	string pathToAPhoto = "";
+	Mat im = imread(pathToAPhoto);
 	if (im.empty()){
 
 		cout << "Cannot load image!" << endl;
@@ -18,7 +19,6 @@ int main(){
 
 	imshow("Image", im);
 	waitKey(0);
-
 }
 
 
