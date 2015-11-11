@@ -1,7 +1,7 @@
 // RoboCup2016.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
+#include "Motion.h"
 
 using namespace std;
 using namespace cv;

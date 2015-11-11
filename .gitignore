@@ -22,6 +22,9 @@
 # Linker files
 *.ilk
 
+# Visual Studio configurations
+
+
 # Compiled Static libraries
 *.lai
 *.la
