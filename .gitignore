@@ -23,11 +23,15 @@
 *.ilk
 
 # Visual Studio configurations, builds & logs
-.sdf
-.opensdf
-.suo
-\Debug\*
-\ipch\*
+*.sdf
+*.opensdf
+*.suo
+Debug/
+ipch/
+
+# Temp files
+*$*
+RemoteSystemsTempFiles/
 
 # Compiled Static libraries
 *.lai
