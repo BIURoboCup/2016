@@ -16,6 +16,12 @@
 # Fortran module files
 *.mod
 
+# Debug data
+*.pdb
+
+# Linker files
+*.ilk
+
 # Compiled Static libraries
 *.lai
 *.la
