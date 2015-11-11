@@ -22,8 +22,12 @@
 # Linker files
 *.ilk
 
-# Visual Studio configurations
-
+# Visual Studio configurations, builds & logs
+.sdf
+.opensdf
+.suo
+\Debug\*
+\ipch\*
 
 # Compiled Static libraries
 *.lai
