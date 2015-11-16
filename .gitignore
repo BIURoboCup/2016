@@ -16,6 +16,23 @@
 # Fortran module files
 *.mod
 
+# Debug data
+*.pdb
+
+# Linker files
+*.ilk
+
+# Visual Studio configurations, builds & logs
+*.sdf
+*.opensdf
+*.suo
+Debug/
+ipch/
+
+# Temp files
+*$*
+RemoteSystemsTempFiles/
+
 # Compiled Static libraries
 *.lai
 *.la
@@ -26,3 +43,6 @@
 *.exe
 *.out
 *.app
+
+# metadata
+.metadata
