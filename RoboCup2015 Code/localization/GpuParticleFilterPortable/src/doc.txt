@@ -1,0 +1,48 @@
+(1)First Week:
+-	opengl need experimental flag to work - lol
+-	Learned how to do opengl with opencv
+-	learned opengl has 3 librarys to work
+-		all librarys are easy to install and robust.
+-	context is per thread!
+-	Changed algo for mor fast parallel
+-		moved weight to start
+-		integral over them o(n) on CPU
+-		search is log(n) for each gpu processor 
+-	Shaders in opengl
+-	no actual off-screen opengl
+-	bound w_t^[i] < e/e-1 but > e^(-(360 + (H^2+W^2)^0.5 )) ~ 2*10^-771
+-	we can read back from gpu rendered with glReadPixels()
+- 	opencv can render OpenGL but only shader version 130#
+-	Explain about VBO, VAO - progammable pipeline
+-	At the end - new version wont affect any legacy code - Best outcome ever!
+-		Opengl 3.1 works with OpenGL 3.0 with Imshow we were used to.
+-		Only Adding not spoiling!
+
+(2)Second week:
+
+TODO:
+	- Nice class for making super robust!!!!!
+	- Many Performance timing and graphs
+	-	Maybe when reaching gpu process count we get more perf.
+	-	Get info to verify it.
+	- Matlab prototype.
+	- C++ CPU version timing. Was it worth it?
+	
+	- Internet Protocol
+	- 3D Windows server.
+
+	
+(3) Third week:
+
+TODO:
+	- Draw function in thread to control math.
+	- To decide when to do computation use a flag that can be changed out of thread.
+	
+	- Moved from drawing to screen to feedback loop
+	
+	
+(4) Forth week:
+TODO: 
+	- Change working version 
+	-		use tranform buffer result as uniform bufer also 
+	-		otherwise rely on cpu.

@@ -1,0 +1,638 @@
+/*
+ * OpenGL_Utility.cpp
+ *
+ *  Created on: Jul 15, 2015
+ *      Author: darwini5
+ */
+
+
+#include "gl_pf.hpp"
+#include "POIdata.hpp"
+#include "timer.hpp"
+
+//#include "opencv2/core/opengl_interop.hpp"
+// OpenGL Includes:
+
+//#include <GL/glext.h>
+
+
+
+#include <iostream>
+#include <fstream>
+#include <string>
+using namespace std;
+
+
+#include <stdio.h>
+#include <unistd.h>
+#include <time.h>
+
+int _glf_lasterror=0;
+#define glfError(msg) if ((_glf_lasterror=glGetError())) cout<< "[GL Error] \"" << msg << "\", code: " << _glf_lasterror <<  endl << flush
+#define glfDebug(msg) cout << "[GL DEBUG] " << msg << endl << flush;
+
+
+/*
+ * *************************************************************
+ * 				FROM WEBER COURSE - SEMSTER A (CG)
+ * *************************************************************
+ */
+
+//Macro to make code more readable
+#define BUFFER_OFFSET(offset)   ((GLvoid*) (offset))
+
+struct Shader
+{
+	std::string filename;
+	GLenum      type;
+	std::string source;
+};
+
+std::string readShaderSource(const std::string& shaderFile)
+{
+	std::ifstream ifile(shaderFile.c_str());
+	std::string filetext;
+
+	while(ifile.good())
+	{
+		std::string line;
+		std::getline(ifile, line);
+		filetext.append(line + "\n");
+	}
+	ifile.close();
+	return filetext;
+}
+
+//create a GLSL program object from vertex and fragment shader files
+GLuint initShader(std::string vertexShaderFileName, std::string fragmentShaderFileName)
+{
+	const int shadersCount = 2;
+
+	Shader shaders[shadersCount] =
+	{
+		{vertexShaderFileName, GL_VERTEX_SHADER, std::string()},
+		{fragmentShaderFileName, GL_FRAGMENT_SHADER, std::string()}
+	};
+
+	GLuint program = glCreateProgram();
+
+	for ( int i = 0; i < shadersCount; ++i ) {
+		Shader& s = shaders[i];
+		s.source = readShaderSource( s.filename );
+		if (shaders[i].source.empty())
+		{
+			std::cout << "Failed to read " << s.filename << std::endl;
+			return 0;
+		}
+
+		GLuint shader = glCreateShader( s.type );
+		const GLchar* strings[1];
+		strings[0] = s.source.c_str();
+		glShaderSource(shader, 1, strings, NULL);
+
+		glCompileShader( shader );
+
+		GLint  compiled;
+		glGetShaderiv( shader, GL_COMPILE_STATUS, &compiled );
+		if ( !compiled ) {
+			std::cout << s.filename << " failed to compile:" << std::endl;
+			GLint  logSize = 0;
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logSize);
+			char* logMsg = new char[logSize];
+			glGetShaderInfoLog(shader, logSize, NULL, logMsg);
+			std::cout << logMsg << std::endl;
+			delete [] logMsg;
+			return 0;
+		}
+
+		glAttachShader(program, shader);
+	}
+
+	/* link  and error check */
+	glLinkProgram(program);
+
+	GLint  linked;
+	glGetProgramiv( program, GL_LINK_STATUS, &linked );
+	if ( !linked ) {
+		std::cout << "Shader program failed to link" << std::endl;
+		GLint  logSize;
+		glGetProgramiv( program, GL_INFO_LOG_LENGTH, &logSize);
+		char* logMsg = new char[logSize];
+		glGetProgramInfoLog( program, logSize, NULL, logMsg );
+		std::cout << logMsg << std::endl;
+		delete [] logMsg;
+
+		return 0;
+		//exit( EXIT_FAILURE );
+	}
+
+	/* use program object */
+	glUseProgram(program);
+
+	return program;
+}
+
+
+/*
+ * *************************************************************
+ * 				Particle filter Function
+ * 				`_glf_` perfix is internal for thread use
+ * *************************************************************
+ */
+
+
+
+float glf_Particle[PSIZE][4];
+float glf_Weight[PSIZE];
+
+int			_reportN = 0;
+GLfloat 	_reports[30*3];
+float		_motorInfo[2];
+
+#define fRAND ((float)rand()/(float)RAND_MAX)
+float randRange(float a, float b) {
+	return a + fRAND*(b-a);
+}
+
+// Generate report with uniform noise - N(U).
+#define CONTAINED(x,arr) ( std::find(arr->begin(), arr->end(), x) != arr->end() )
+POIReport generateReportNu(short name, Particle realPlace,  float derror, RAD aerror) {
+	double dist = randRange(-derror, derror);
+	double radian = randRange(-aerror.getRADValue(), aerror.getRADValue());
+
+	printf("Noise in (d,a): (%f,%f)\n",dist,DEG::fromRadian(radian).getDEGValue());
+
+	POItypes reportType = GENERAL_SHAPE;
+
+	// Select what kind of report the robot will give base on the POIs:
+
+	if ( CONTAINED((int)name,vecLPOIs()) ) {
+		reportType = L_SHAPE;
+	} else if( CONTAINED((int)name, vecTPOIs()) ) {
+		reportType = T_SHAPE;
+	} else if( CONTAINED((int)name, vecCPOIs()) ) {
+		reportType =CIRCLE_SHAPE;
+	} else if( CONTAINED((int)name, vecDPOIs()) ) {
+			reportType = DOT_SHAPE;
+	} else if( CONTAINED((int)name, vecPPOIs()) ) {
+			reportType = PLUS_SHAPE;
+	//else - general shape.
+	}
+
+	PointOfInterest* POIs = getPOIsXY();
+	// Find angle and distance and add to the noise:
+	// distance = built in glm distance function
+	dist	+= glm::distance(realPlace.pos, POIs[name]);
+
+	// angle = atan(dy,dx);
+	radian	+= glm::atan(POIs[name].y - realPlace.pos.y, POIs[name].x - realPlace.pos.x)
+		-  realPlace.degree.toRAD().getRADValue();
+				// XY space from Camera space. so (dteta) becomes (p.angles + dteta)
+
+	return newReport(reportType, dist, DEG::fromRadian(radian));
+}
+
+void _glf_pf_rand_particles() {
+	for (int i=0;i<PSIZE;i++) {
+		glf_Particle[i][0] =  randRange(0,A/2);
+		glf_Particle[i][1] =  randRange(-B/2,B/2);
+		glf_Particle[i][2] =  randRange(-M_PI,M_PI);
+		glf_Particle[i][3] =  1.0f; // Length are equals.
+	}
+}
+
+void _glf_pf_upload_sensors(GLuint shaderID) {
+	glUseProgram(shaderID);
+	glUniform1i		( glGetUniformLocation(shaderID, "reportCount") , _reportN);
+	glUniform3fv	( glGetUniformLocation(shaderID, "reports"), 30, _reports);
+	glUniform2f		( glGetUniformLocation(shaderID, "movementInfo"), _motorInfo[0], _motorInfo[1]);
+	glfError("After sensors uniform.");
+
+}
+
+void pf_set_reports(std::vector<POIReport> reportsList) {
+	_reportN = reportsList.size();
+	for (int i=0;i<_reportN;i++){
+		_reports[i*3 + 0] = reportsList[i].distance;
+		_reports[i*3 + 1] = reportsList[i].degree.toRAD().getRADValue(); // Every value is in radians!
+		_reports[i*3 + 2] = reportsList[i].type;
+	}
+}
+
+void pf_set_motors(glm::vec2 move) {
+	_motorInfo[0] = move.x; // Distance
+	_motorInfo[1] = move.y; // Angle
+}
+
+
+// For testing :
+
+void _glf_pf_init_test(GLuint shaderID) {
+	PointOfInterest* allXY = getPOIsXY();
+	GLfloat _POIs[30*2];
+	POIvector all = vecAllPOIs();
+	for (unsigned int i=0;i < all->size();i++) {
+		_POIs[i*2 + 0] = allXY[(*all)[i]].x;
+		_POIs[i*2 + 1] = allXY[(*all)[i]].y;
+	}
+
+	glUseProgram(shaderID);
+
+	glUniform2fv( glGetUniformLocation(shaderID, "POIs"), 30, _POIs);
+	glfError("After uniform POIs[30].");
+
+
+	// For our porpuses random particles:
+	_glf_pf_rand_particles();
+
+	// Add random reports:
+	Particle testP; // The same particle from the documintation
+	testP.pos =  glm::vec2(135,-300);
+	testP.degree = DEG::fromDegree(45.0f);
+
+	// Cant be more reports than the real POIs.
+	vector<POIReport> _rps;
+	for (int j=0;j<POIs_COUNT;j++) {
+		_rps.push_back(
+				generateReportNu(
+						j,
+						testP,
+						3.2f,
+						RAD::fromDegree(5)
+				)
+				);
+	}
+	pf_set_reports(_rps);
+
+
+	// Add random motor
+	glm::vec2 move;
+	move.x = randRange(0,10); // distance is >0
+	move.y = randRange(-M_PI,M_PI)/18; // +-10deg
+	pf_set_motors(move);
+
+
+	// Upload data to gpu:
+	_glf_pf_upload_sensors(shaderID);
+}
+
+
+/*
+ * *************************************************************
+ * 				FROM PROJECT BUILDING - METHOD B - Feedback
+ * 				http://steps3d.narod.ru/tutorials/tf3-tutorial.html
+ * 				also from book :
+ * 					Computer Graphics- From Pixels To Programmable Graphics Hardware
+ * *************************************************************
+ */
+
+
+void _glf_close(){
+	cout << "glf closed normally." << endl << flush ;
+}
+
+GLuint glf_shaderID;
+void _glf_relink(GLuint shaderID) {
+	// Re link shader.
+	GLint _linkedID;
+
+	if (GLEW_ARB_get_program_binary)
+		glProgramParameteri ( shaderID, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE );
+
+	// Link the shader
+	glLinkProgram(shaderID);
+		glfError("shader_linking");
+
+	glGetProgramiv(shaderID, GL_LINK_STATUS, &_linkedID);
+	if(!_linkedID) cout << "Error occured while re-linking the shader.\n";
+}
+
+GLuint glf_vao[2], a_vbo[2], b_vbo[2];
+void _glf_example(float x) {
+	int j,k;
+		for (j =0 ;j<PSIZE ; j++) {
+			glf_Weight[j] = j;
+			for (k = 0;k<4;k++){
+				glf_Particle[j][k] = j;
+			}
+		}
+}
+
+enum LayoutLocation {
+		lA = 0,
+		lB = 1
+	};
+
+void _glf_init() {
+	glfError("init call befor anything (ignore?)");
+
+	// Load and compile the shader.
+	// All gpu math operation occur in the shader
+	glf_shaderID = initShader("Shaders/pvs.glsl","Shaders/pfs.glsl");
+	if (!glf_shaderID)
+	{
+		cout << "Error occurred while loading the shader..." << endl;
+	}
+	glfError("init shader");
+
+	// Make this shader active to modify it.
+	glUseProgram(glf_shaderID);
+
+	// Now we are choosing which variables in the shader will
+	// 		be used to give us feedback.
+	const GLchar *shaderOutVars[] =
+		{
+				"outp",
+				"outw",
+		};
+	glTransformFeedbackVaryings(glf_shaderID, 2 , shaderOutVars, GL_SEPARATE_ATTRIBS);
+	glfError("init compile output");
+
+	// Relink the shader:
+	_glf_relink(glf_shaderID);
+	glfError("init relink");
+
+	// Assign vertex array (va) and vertex buffer (vb) objects.
+	// We use them in pairs. Each time we write from one to the other.
+
+	// Example data:
+	_glf_example(2.0f);
+
+	for (int i=0;i<2;i++) {
+		// Generate and bind as active a new vao:
+		glGenVertexArrays(1, &glf_vao[i]);
+		glBindVertexArray(glf_vao[i]);
+		glfError("init vao");
+
+		// Generate, bind as active, and set data for each
+		// buffer vertex.
+		// Remember! this binds to the actvie vao.
+
+		// A
+		glGenBuffers(1, &a_vbo[i]);
+		glBindBuffer(GL_ARRAY_BUFFER, a_vbo[i]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glf_Particle) , glf_Particle, GL_DYNAMIC_DRAW);
+		glVertexAttribPointer ( lA, 			// index in shader (layout)
+								4, 			// number of values per vertex - 3 = vec3
+								GL_FLOAT, 	// type (float)
+								GL_FALSE,   // normalized?
+								0, 			// stride (offset to next vertex data)
+								(const GLvoid*) 0 ); //offset in bytes
+		// Coonect it to the shader as vertex array:
+		glEnableVertexAttribArray ( lA );
+		glfError("init vbo a");
+
+		// B
+		glGenBuffers(1, &b_vbo[i]);
+		glBindBuffer(GL_ARRAY_BUFFER, b_vbo[i]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glf_Weight) , glf_Weight, GL_DYNAMIC_DRAW);
+		glVertexAttribPointer ( lB, 			// index in shader (layout)
+								1, 			// number of values per vertex - 3 = vec3
+								GL_FLOAT, 	// type (float)
+								GL_FALSE,   // normalized?
+								0, 			// stride (offset to next vertex data)
+								(const GLvoid*) 0 ); //offset in bytes
+		// Coonect it to the shader as vertex array:
+		glEnableVertexAttribArray ( lB );
+		glfError("init vbo b");
+
+		// Unbind vao - a good practice for oredr porpuses.
+		glBindVertexArray(0 );
+	}
+}
+
+
+int last_second = 0;
+int frame_count = 0;
+
+int currentPair = 0;
+void _glf_feedback() {
+	/*
+	// FPS Counter:
+	if ((int)time(NULL) > last_second) {
+		cout << "FPS: " << frame_count << endl;
+		frame_count = 0;
+		last_second = (int)time(NULL);
+	}else{
+		frame_count++;
+	}
+	*/
+
+
+	// ****************************
+	//		Feedback loop:
+	// ****************************
+
+	// Disable the rasterizer since we dont use it in the feedback loop:
+	// (optional)
+	glEnable (GL_RASTERIZER_DISCARD);
+	glfError("draw init");
+
+	currentPair ^= 1; // switch between 1 and 0.
+
+	// Bind buffers to the output of the shader.
+	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER,lA,a_vbo[currentPair^1]);
+	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER,lB,b_vbo[currentPair^1]);
+	glfError("draw bind output");
+
+	// bind our shader:
+	glUseProgram(glf_shaderID);
+
+	// Set uniforms to active shader:
+	glUniform1f ( glGetUniformLocation ( glf_shaderID, "mul" ), 2.0f);
+	glfError("draw uniform");
+
+	// Begin feedback:
+	glBeginTransformFeedback(GL_POINTS); // Each vertex on its own.
+	glfError("draw begin feedback");
+
+	// Bind vao for the *Source* data
+	glBindVertexArray(glf_vao[currentPair]);
+	glfError("draw bind vao");
+
+	glDrawArrays(GL_POINTS, 0 , PSIZE); // calculate to our feedback loop.
+	glfError("draw array");
+
+	// Unbind vao.
+	glBindVertexArray(0);
+	glfError("draw unbind vao");
+
+	// End Feedback:
+	glEndTransformFeedback();
+	glfError("draw end feedback");
+
+	// unbind our shader:
+	glUseProgram(0);
+
+	// ****************************
+	//		Read back data:
+	// ****************************
+
+	// Bind vao of the *Target* data
+	glBindVertexArray(glf_vao[currentPair^1]);
+	glfError("draw bind vao for read");
+
+	// Read Data from A:
+	glBindBuffer(GL_ARRAY_BUFFER, a_vbo[currentPair^1]);
+
+	void* ptr1 = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY); //if (ptr1 != NULL) cout << "Part1 Sucess\n";
+	glfError("draw read map 1");
+
+	memcpy(glf_Particle,ptr1,sizeof(glf_Particle));
+
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glfError("draw read unmap 1");
+
+	//cout << glf_Particle[0][0] << "," <<  glf_Particle[PSIZE-1][3] <<  endl << flush;
+
+	// Read Data from B:
+	glBindBuffer(GL_ARRAY_BUFFER, b_vbo[currentPair^1]);
+
+
+	void* ptr2 = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_ONLY); //if (ptr2 != NULL) cout << "Part2 Sucess\n";
+	glfError("draw read map 2");
+
+	memcpy(glf_Weight,ptr2,sizeof(glf_Weight));
+
+	//cout << glf_Weight[0] <<  "," <<  glf_Weight[PSIZE-1] << endl << flush;
+
+
+	glUnmapBuffer(GL_ARRAY_BUFFER);
+	glfError("draw read unmap 2");
+
+	// Unbind vao.
+	glBindVertexArray(0);
+	glfError("draw unbind vao for read");
+}
+
+
+pf_Timer oc;
+int _debug_perfomance = 0;
+void _glf_draw() {
+
+	if(_debug_perfomance++ < 2000) {
+		oc.start();
+		_glf_feedback();
+		cout << _debug_perfomance <<  "," << oc.nanostop() << endl << flush;
+	}else{
+		exit(0);
+	}
+
+
+	// ****************************
+	//		Refresh Screen:
+	// ****************************
+	glfError("draw black screen");
+
+	glDisable (GL_RASTERIZER_DISCARD);
+
+	// Clear color and Z (depth) buffer:
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	// Draw with debug color:
+	glClearColor(0.74f,0.22f,0.21f,1.0f);
+
+	// Swap the back and fron buffer:
+	glutSwapBuffers();
+}
+
+void *_glf_Main(void* arg) {
+	openglInitData *data = (openglInitData*)arg;
+
+	// Start openGL context using glut library:
+	glutInit(data->argc, data->argv);
+
+	// We want our window to have color and depth buffers
+	// with maximum of double percision.
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowSize(500,500);
+
+	// We need openGL 3.3 context to support the feedback process
+	// so we will ask for it:
+	glutInitContextVersion(3,3);
+	glutInitContextProfile(GLUT_CORE_PROFILE);
+
+	// Set callback for the window we will create:
+	glutDisplayFunc(&_glf_draw);
+	glutIdleFunc(&_glf_draw);
+	//glutWMCloseFunc(&_glf_close);
+	glutCloseFunc(&_glf_close);
+
+	// Create the main window (must be done even if we won't draw on it)
+	glutCreateWindow("OpenGL Particle filter with feedback");
+
+	// openGL 3.3 on linux with glew is buggy. we need to allow
+	//		experimental.
+	glewExperimental = GL_TRUE;
+
+	// Now we want to bind our windows with opengl. we do so with glew library
+	// If we can't init it then something bad happened.
+	if (glewInit() == GLEW_OK) {
+		// As we said glew is buggy and this should give error 1280 but ignore it.
+		glfError("glew_init_ignore");
+
+		// Print info about opengl context that concern us:
+		int _info;
+
+
+		cout << "GL Version  " << glGetString(GL_VERSION) << endl;
+		cout << "GL Shader Version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << endl << flush;
+		cout << "GL Vendor: " << glGetString(GL_VENDOR) << endl << flush;
+		cout << "GL Renderer: " << glGetString(GL_RENDERER) << endl << endl << flush;
+
+		// Info for Method A
+		glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &_info);
+		cout << "Maximum textures unit to be bound at once: " << _info << endl << flush;
+		glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &_info);
+		cout << "Maximum textures unit to be bound at once (all programs combined): " << _info << endl << flush;
+		glGetIntegerv(GL_MAX_TEXTURE_SIZE, &_info);
+		cout << "Maximum textures size: " << _info << endl << flush;
+
+		// Info for Method B
+		// Feedback info:
+		glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS, &_info);
+		cout << "Maximum feedback interleaved variables count: " << _info << endl << flush;
+		glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &_info);
+		cout << "Maximum feedback separate variables count: " << _info << endl << flush;
+		glGetIntegerv(GL_MAX_TRANSFORM_FEEDBACK_BUFFERS, &_info);
+		cout << "Maximum feedback buffers: " << _info << endl << flush;
+		glGetIntegerv(GL_MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS, &_info);
+		cout << "Maximum uniform array size for all vars combined: " << _info << endl << flush;
+
+		// Prepare the gpu for feedback process:
+		glfDebug("gl init:");
+		_glf_init();
+
+		glfDebug("pf init:");
+		_glf_pf_init_test(glf_shaderID);
+
+		oc.start();
+		sleep(1);
+		cout << "1s for comperison: " << oc.nanostop() << endl << flush;
+
+		// Start the loop to handle windows events
+		// 		and also hang the thread as long the window is open.
+		glutMainLoop();
+	}else{
+		cout << "Error occured while gettin opengl 3.3 context." << endl;
+	}
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,460 @@
+#include <iostream>
+#include "stdio.h"
+#include "POIdata.hpp"
+
+// glm headers:
+#include "glm\glm.hpp"
+#include "glm\fwd.hpp"
+
+#define _USE_MATH_DEFINES
+#include <math.h>
+
+
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+
+// Matlab Interface:
+/*
+Steps to include matlab:
+1) Add include and lib directory to matlab (in VC++ directories)
+2) Project -> Properties -> Linker -> Input -> Additional dependencies and add:
+	libmx.lib
+	libeng.lib
+	libmat.lib
+3)change compiler\debugger configuration to x64 architecture
+You need 3x .h and 2x .cpp in our current way plus the directory of gmm includes. Done!
+4) Change working directory to the place of libeng.dll in the c:\matab dir.
+*/
+#include "matlab\MatlabInterface.h"
+#include "matlab\GMM_Macros.h"
+#include "matlab\MatlabGMMDataExchange.h"
+
+
+using namespace std;
+
+
+
+/*****************************
+************ DATA ************
+******************************/
+
+const float FieldDiagonal = 1276.4;
+const float dcoeff = 0.1f  ;			    
+const float tcoeff = 10.0f;
+
+float w(float reportDistance, RAD reportAngle, Particle p, int POIindex) {
+// The coeff are based on wet trying to find good fit.
+float	d =  dcoeff *  glm::abs(reportDistance -  glm::distance(POIs[POIindex],p.pos));
+RAD		t =  RAD::fromRadian (
+				tcoeff *  glm::abs(
+						reportAngle.getRADValue() -  
+						glm::atan(POIs[POIindex].y - p.pos.y,POIs[POIindex].x - p.pos.x))
+							 );
+//printf("(%f,%f) : ",d,t);
+return glm::exp (-d -t.getRADValue() );
+}
+
+
+#define SIZE 20*20*10  // How much particles to RANDOM
+					   // if you use smart random use x^2*angleParts
+#define fRAND ((float)rand()/(float)RAND_MAX) 
+#define dRAND ((double)rand()/(double)RAND_MAX) 
+
+float randRange(float a, float b) {
+	return a + fRAND*(b-a);
+}
+
+// *******************************
+// ******	For example 1:
+// *******************************
+
+// 2 Particles and their weight for each POIS
+void exampleForParticle(Particle p1) { 
+
+	
+
+	//L
+	for each (int index in IndexPOIs::LPOIs ) {
+		printf("%s (%3.3f,%3.3f) (%3.3f,%3.3f)\n",
+			IndexPOIs::allPOIsStrings[index],
+			POIs[index].x,
+			POIs[index].y,
+			glm::distance(POIs[index],p1.pos),
+			glm::atan(POIs[index].y - p1.pos.y,	 POIs[index].x - p1.pos.x) * 180 / M_PI  - 45
+			) ;
+	}
+
+	cout << endl << endl;
+
+	//T
+	for each (int index in IndexPOIs::TPOIs ) {
+		printf("%s (%3.3f,%3.3f) (%3.3f,%3.3f)\n",
+			IndexPOIs::allPOIsStrings[index],
+			POIs[index].x,
+			POIs[index].y,
+			glm::distance(POIs[index],p1.pos),
+			glm::atan(POIs[index].y - p1.pos.y,	 POIs[index].x - p1.pos.x) * 180 / M_PI  - 45
+			) ;
+	}
+
+
+	cout << endl << endl;
+
+	//indexes in array: 0 - L, 1 - T
+	float distance[2] = {520 , 380};
+	DEG	angle[2] = {
+		DEG::fromDegree(1.5		+ p1.degree.getDEGValue()),
+		DEG::fromDegree(-11.3	+ p1.degree.getDEGValue())
+					};
+	
+
+	float sum = 0;
+
+	 //L Shape weight
+	for each (int index in IndexPOIs::LPOIs ) {
+		float l =  w(distance[0],angle[0],p1,index);
+		sum += l;
+
+		printf("%s: %f\n",
+			IndexPOIs::allPOIsStrings[index],
+			l
+			) ;
+	}
+
+	cout << endl << endl;
+
+	//T Shape weight
+	for each (int index in IndexPOIs::TPOIs ) { 
+		float r = w(distance[1],angle[1],p1,index);
+		sum += r;
+		printf("%s: %f\n",
+			IndexPOIs::allPOIsStrings[index],
+			r
+			) ;
+	}
+
+	cout << "\n\nSum: " << sum << endl << endl;
+}
+
+// *******************************
+// ******	For example 2:
+// *******************************
+
+// Matlab example: random SIZE particles and visulise them in matlab (2d arrows)
+void matlabExample(bool Lshape) {
+	GMMDenseColMatrix _p(SIZE,3);	// XYT for each particle
+	GMMDenseColMatrix _w(SIZE,1);	// W_i for each particle
+
+	Particle temp;
+	for (int i=0;i<SIZE;i++) {
+		// Random particle:
+
+		if (i>0) {
+			temp.degree  = DEG::fromDegree (randRange (-180,180)); //Teta
+			temp.pos.x  = randRange(-FieldConsts::A/2,FieldConsts::A/2); //X
+			temp.pos.y = randRange(-FieldConsts::B/2,FieldConsts::B/2); //Y
+		}else{
+			//Test case:
+			temp.degree		= DEG::fromDegree(45);
+			temp.pos		= glm::vec2(135,-300);
+		}
+		
+
+		//printf("p(%d,:) = [%f %f %f];\n",i+1,_p[i].pos.x,_p[i].pos.y,_p[i].angle);
+
+		// Calculate Particle weight:
+		POIReport L_Report = newReport(POItypes::GENERAL_SHAPE
+					, 520,	RAD::fromDegree(1.5		+ temp.degree.getDEGValue()  )	); 
+		POIReport T_Report = newReport(POItypes::GENERAL_SHAPE
+					, 380,	RAD::fromDegree(-11.3	+ temp.degree.getDEGValue()  )	); 
+
+		float sum = 0;
+
+		//if(Lshape){ //L Shape weight
+			for each (int index in IndexPOIs::LPOIs ) {
+				sum += w(L_Report.distance , L_Report.degree ,temp,index);
+			}
+
+		//}else{
+
+			//T Shape weight
+			for each (int index in IndexPOIs::TPOIs ) { 
+				sum += w(T_Report.distance ,T_Report.degree ,temp,index);
+			}
+
+		//}																					   
+		//printf("w(%d) = %f;\n",i+1,sum);
+
+		_p(i,0) = temp.pos.x;
+		_p(i,1) = temp.pos.y;
+		_p(i,2) = temp.degree.toRAD().getRADValue() ; 
+		_w(i,0) = sum;
+		//printf("Calc p_[%d]\n",i);
+	}
+
+	MatlabGMMDataExchange::SetEngineDenseMatrix("p",_p);
+	MatlabGMMDataExchange::SetEngineDenseMatrix("w",_w);
+	MatlabInterface::GetEngine().EvalToString ( (string("pcount = ") + to_string(SIZE)).c_str() );
+	//MatlabInterface::GetEngine().EvalToString ( (string("ptitle = '") + (Lshape?string("L-Shape"):string("T-Shape")) + string("'") ).c_str() );
+	MatlabInterface::GetEngine().EvalToString ( (string("ptitle = 'T+L'") ).c_str() );
+	MatlabInterface::GetEngine().EvalToString ("PFilterMap");
+}
+
+
+// *******************************
+// ******	For example 3:
+// *******************************
+
+#define CONTAINED(x,arr) ( std::find(arr->begin(), arr->end(), x) != arr->end() )
+#define loopitr(type, list)  for(std::vector<type>::iterator itr = list.begin(); itr != list.end(); ++itr) 
+#define loopi(count) for(int i=0;i<count;i++)
+#define loopj(count) for(int j=0;j<count;j++)
+#define loopk(count) for(int k=0;k<count;k++)
+#define loop(ind,count) for(int ind=0;ind<count;ind++)
+
+// Generate report with uniform noise - N(U).
+POIReport generateReportNu(allPOIsNames name, Particle realPlace,  float derror, RAD aerror) {
+	double dist = randRange(-derror, derror);
+	double radian = randRange(-aerror.getRADValue(), aerror.getRADValue());
+
+	printf("Noise in (d,a): (%f,%f)\n",dist,DEG::fromRadian(radian).getDEGValue());
+
+	POItypes reportType = POItypes::GENERAL_SHAPE;
+
+	// Select what kind of report the robot will give base on the POIs:
+
+	if ( CONTAINED((int)name,vecLPOIs()) ) {
+		reportType = POItypes::L_SHAPE;
+	} else if( CONTAINED((int)name, vecTPOIs()) ) {
+		reportType = POItypes::T_SHAPE;
+	} else if( CONTAINED((int)name, vecCirclePOIs()) ) {
+		reportType = POItypes::CIRCLE_SHAPE;
+	//else - general shape.
+	}
+
+	// Find angle and distance and add to the noise:
+	// distance = built in glm distance function
+	dist	+= glm::distance(realPlace.pos, POIs[name]);
+
+	// angle = atan(dy,dx);
+	radian	+= glm::atan(POIs[name].y - realPlace.pos.y, POIs[name].x - realPlace.pos.x) 
+		-  realPlace.degree.toRAD().getRADValue(); 
+				// XY space from Camera space. so (dteta) becomes (p.angles + dteta)
+
+	return newReport(reportType, dist, DEG::fromRadian(radian));
+}
+
+float w(POIReport report, Particle p, int POIindex) {
+// The coeff are based on wet trying to find good fit.
+float	d =  dcoeff *  glm::abs(report.distance -  glm::distance(POIs[POIindex],p.pos));
+float	t =  tcoeff *  RAD::fromRadian (
+				  glm::abs(
+						// From robot perpective (pi(left) <-> -pi(right))
+						report.degree.toRAD().getRADValue() -  
+						
+						// Convert from xy space to robot camera perspective:
+						(
+						glm::atan(POIs[POIindex].y - p.pos.y,POIs[POIindex].x - p.pos.x)
+						- p.degree.toRAD().getRADValue()
+						)
+						)).getRADValue();
+//cout << t  << "@poi" << POIindex << endl;
+return glm::exp (-d -t );
+}
+
+float weightForParticle(Particle p, std::vector<POIReport> list) {
+	float totalWeight = 0;
+	int* POIsOfType;
+
+	// Choose who we consider to calculate the weight:
+	loopitr(POIReport, list) {
+		switch (itr->type) {
+		case POItypes::L_SHAPE:
+			for each (int index in IndexPOIs::LPOIs ) {
+				totalWeight +=	w(*itr,p,index);
+			}
+			break;
+		case POItypes::T_SHAPE:
+			for each (int index in IndexPOIs::TPOIs ) {
+				totalWeight +=	w(*itr,p,index);
+			}
+			break;
+		case POItypes::CIRCLE_SHAPE:
+			for each (int index in IndexPOIs::CirclePOIs ) {
+				totalWeight +=	w(*itr,p,index);
+			}
+			break;
+		case POItypes::GENERAL_SHAPE:
+			for each (int index in IndexPOIs::allPOIs ) {
+				totalWeight +=	w(*itr,p,index);
+			}
+			break;
+		}
+	}
+
+	// Calc weight for these POIs:
+	return totalWeight;
+}
+
+Particle randomParticleNu() {
+	Particle temp;
+	temp.degree  = DEG::fromDegree (randRange (-180,180)); //Teta
+	
+	//temp.pos.x  = randRange(-FieldConsts::A/2,FieldConsts::A/2); //Symmetric X
+	temp.pos.x  = randRange(0,FieldConsts::A/2); //NonSymmetric X
+
+	temp.pos.y = randRange(-FieldConsts::B/2,FieldConsts::B/2); //Y
+	return temp;
+}
+
+// Smart particle randomizer to sample grid uniformly
+//	and not random uniformly.
+//	and it's only on the right side.
+vector<Particle> randomParticleSmart(int index, int grid[2], int angleParts) {
+	vector<Particle> ret;
+	//			column	   *  size of cell in X space	= in [0,A/2]
+	float x =  (index%grid[1]) * (A * 0.5f)/(grid[1]-1);
+
+	//			row * size of cell in Y space - shift of b/2  = in [-b/2,b/2]
+	float y =  ((index - index%grid[1])/grid[0]) * (B)/(grid[0]-1)
+				- B * 0.5;
+
+	loopi(angleParts) {
+		Particle _t = {glm::vec2(x,y), DEG::fromDegree(randRange(-180,180))};
+		if (true && i==0) _t.degree = DEG::fromDegree(45);
+		ret.push_back(_t);
+	}
+
+	return ret;
+}
+
+#define W_THRESHOLD 0.75f
+bool matlabExample2( std::vector<POIReport> list ) {
+	GMMDenseColMatrix _p(SIZE,3);	// XYT for each particle
+	GMMDenseColMatrix _w(SIZE,1);	// W_i for each particle
+
+	float maxWeight = 0;
+
+	/* 
+	Random with uniform version:
+
+	// Calc weight for each random particle:
+	loopi(SIZE) {
+		Particle p = randomParticleNu();
+		if (false && i == 0 ) {	// debug case
+			p.degree	= DEG::fromDegree(45);
+			p.pos		= glm::vec2(135,-300);
+		}
+		_p(i,0) = p.pos.x;
+		_p(i,1) = p.pos.y;
+		_p(i,2) = p.degree.toRAD().getRADValue();
+
+		_w(i,0) = weightForParticle(p,list);
+		if ( _w(i,0) > maxWeight ) maxWeight = _w(i,0);
+	}
+	*/
+
+	/*
+	Random with smart version:
+	*/
+
+	int angleParts = 10;
+	int grid1d = sqrt(SIZE/angleParts);
+	int gridSize[2] = {grid1d,grid1d};
+	
+	loopi(SIZE/angleParts) {
+		vector<Particle> p = randomParticleSmart(i,gridSize,angleParts);
+		loopj(angleParts) {
+		_p(i*10+j,0) = p[j].pos.x;
+		_p(i*10+j,1) = p[j].pos.y;
+		_p(i*10+j,2) = p[j].degree.toRAD().getRADValue();
+
+		_w(i*10+j,0) = weightForParticle(p[j],list);
+		if ( _w(i*10+j,0) > maxWeight ) maxWeight = _w(i*10+j,0);
+		}
+	}		  
+
+	// Set data to matlab and run the script for particle map :
+	MatlabGMMDataExchange::SetEngineDenseMatrix("p",_p);
+	MatlabGMMDataExchange::SetEngineDenseMatrix("w",_w);
+	MatlabInterface::GetEngine().EvalToString ( (string("pcount = ") + to_string(SIZE)).c_str() );
+	
+	string title;
+	cout << "Enter title to graph: ";
+	getline( std::cin, title );
+	MatlabInterface::GetEngine().EvalToString ( (string("ptitle = '") + title + string("'") ).c_str() );
+	MatlabInterface::GetEngine().EvalToString ("PFilterMap");
+
+	cout << "Max weight: " << maxWeight << endl;
+	return ( maxWeight/(float)list.size() > W_THRESHOLD );
+
+ }
+
+char* sBOOL[] = {"FALSE", "TRUE"};	// bool to string
+
+int main() {
+
+	//To control testing the seed is set by us:
+	unsigned int seed = time(NULL);
+	cout << "Seed: " << seed << endl;
+	srand (seed);
+
+	/*	
+	Example 1:
+	Use this code to check wheter our particle weight is giving good result
+	the first particle must have better weight.
+	 
+	
+	Particle ps1;
+	ps1.degree 	= DEG::fromDegree (45);
+	ps1.pos		= glm::vec2(135,-300);
+	Particle ps2;
+	ps2.degree 	= DEG::fromDegree (135);
+	ps2.pos		= glm::vec2(-135,-300);
+	
+
+	exampleForParticle(ps1);
+	exampleForParticle(ps2);
+	 */
+	
+	/*
+	Example 2:
+	Use this code to see real time weight map in the field and see if our 
+	entire process give good guess.
+
+	matlabExample(true);
+	*/
+	
+	/*
+	Example 3:
+	In this example we use 3D simulation and choose which
+	POIs to report. And then we calculate weight for M=SIZE particles
+	and see the realiebilty of our algorithm.
+	*/
+
+	std::vector<POIReport> reportList;
+	Particle real_p = {glm::vec2(135,-300), DEG::fromDegree(45)};
+	float derror = sqrt(SIZE/10); //  cm error
+	DEG aerror = DEG::fromDegree(10);  //  degree error.
+
+	reportList.push_back(generateReportNu(RIGHT_LOW_FIELD_CORNER, real_p, derror, aerror));
+	reportList.push_back(generateReportNu(RIGHT_PENALTY, real_p, derror, aerror));
+	reportList.push_back(generateReportNu(RIGHT_LOW_FRONT_NET, real_p, derror, aerror));
+	reportList.push_back(generateReportNu(RIGHT_TOP_FRONT_NET, real_p, derror, aerror));
+	reportList.push_back(generateReportNu(RIGHT_LOW_FRONT_GOAL_AREA, real_p, derror, aerror));
+	reportList.push_back(generateReportNu(RIGHT_LOW_BACK_GOAL_AREA, real_p, derror, aerror));
+	cout << "Is it realiable? " << sBOOL[matlabExample2(reportList)] << endl;
+
+
+// Wait for key...
+//#define DONT_WAIT
+#ifndef DONT_WAIT
+	int m;
+	cout << endl << "Press any key to exit ..." << endl;
+	cin >> m;
+#endif
+
+	return 0;
+}
+
+

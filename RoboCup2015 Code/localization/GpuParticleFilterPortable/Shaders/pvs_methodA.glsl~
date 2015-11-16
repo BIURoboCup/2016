@@ -1,0 +1,28 @@
+#version 330
+
+/*
+layout(location = 0) in vec3 position;
+layout(location = 1) in vec2 vertexUV;
+out vec2 uv;
+
+void main () {
+	gl_Position = vec4(position,1.0);
+	uv = vertexUV;  
+}
+*/
+
+uniform float mul;
+
+layout(location = 0) in vec3 ina;
+layout(location = 1) in vec3 inb;
+
+out vec3 outa;
+out vec3 outb;
+
+void main(void)
+{
+	outa = mul * ina;
+		if (outa.x > 1000.0f) outa = vec3(2.0);
+	outb = (mul+1) * inb;
+		if (outb.x > 1000.0f) outb = vec3(2.0);
+}

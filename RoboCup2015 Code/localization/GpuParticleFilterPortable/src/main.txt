@@ -1,0 +1,61 @@
+//============================================================================
+// Name        : GpuParticleFilterPortable.cpp
+// Author      : 
+// Version     :
+// Copyright   : Your copyright notice
+// Description : Hello World in C++, Ansi-style
+//============================================================================
+
+#include <iostream>
+using namespace std;
+
+// OpenCV Includes:
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
+#include "opencv2/flann/miniflann.hpp"
+
+// OpenGL Includes:
+#include <GL/freeglut.h>
+
+
+//Frame Buffer Object (FBO)
+//Core since version	3.0
+/*
+Framebuffer Objects are OpenGL Objects,
+	which allow for the creation of user-defined Framebuffers.
+With them, one can render to non-Default Framebuffer locations,
+	and thus render without disturbing the main screen.
+*/
+void createNewFrameBuffer() {
+
+}
+
+
+void initGlut(int argc, char **argv) {
+
+	// GLUT Window Initialization:
+	glutInit (&argc, argv);
+	glutInitWindowSize (640, 480);
+	glutInitWindowPosition(100, 100);
+	glutInitDisplayMode ( GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+	nWindowID = glutCreateWindow ("simpleGLUT - CvCamera");
+
+	// Register callbacks:
+	glutDisplayFunc		(displayFunc);
+	glutReshapeFunc		(reshapeFunc);
+	glutKeyboardFunc	(keyboardFunc);
+	glutSpecialFunc		(specialFunc);
+	glutMouseFunc		(mouseFunc);
+	glutMotionFunc		(mouseMotionFunc);
+	glutIdleFunc		(idleFunc);
+}
+
+int main(int argc, char** argv) {
+
+	glutInit(&argc,argv);
+
+	cout << "!!!Hello World!!!" << endl; // prints !!!Hello World!!!
+	cv::namedWindow("Hellow?");
+	cv::waitKey();
+	return 0;
+}
