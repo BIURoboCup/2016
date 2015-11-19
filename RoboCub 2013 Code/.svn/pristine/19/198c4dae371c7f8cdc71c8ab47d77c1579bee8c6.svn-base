@@ -1,0 +1,2 @@
+#define FIELD_WIDTH 400
+#define FIELD_LENGTH 600
