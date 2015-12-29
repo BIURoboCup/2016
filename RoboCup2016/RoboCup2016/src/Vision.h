@@ -12,15 +12,11 @@
 
 #include <iostream>
 #include <string>
-#include <semaphore.h>
-#include <cv.h>
-#include <highgui.h>
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/flann/miniflann.hpp"
 #include <math.h>
 #include <signal.h>
-#include <sys/time.h>
 #include <fstream>
 #include "consts.h"
 

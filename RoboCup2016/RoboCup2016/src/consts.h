@@ -5,6 +5,8 @@
  *      Author: root
  */
 
+#define _CRT_SECURE_NO_WARNINGS
+
 #ifndef SRC_CONSTS_H_
 #define SRC_CONSTS_H_
 
@@ -46,6 +48,10 @@
 #define ROBOHEIGHT 59//24
 #define U0 FRAME_WIDTH/2
 #define V0 FRAME_HEIGHT/2
+
+#define M_PI 3.147
+#define M_PI_2 3.147
+
 
 //#define AXISTRANSPOSE     //define this for upside-down camera
 

@@ -1,6 +1,6 @@
 
 #include <iostream>
-#include "stdafx.h"
+#include "Vision.h"
 #include "findGate.h"
 
 using namespace std;
@@ -19,7 +19,7 @@ void DrawRectangle(Mat &image, RotatedRect &rect)
 void PrintString(Mat &src, const char* string_to_print)
 {
 	char text[20];  //creating array that will store the print data
-	sprintf(text, string_to_print);
+	sprintf_s(text, string_to_print);
 	putText(src, text, Point(10, 10), Font_Type, Font_Scale, Font_Colour, 2); //Display the text in image window
 }
 
@@ -262,7 +262,7 @@ void FindGate(Mat inputImage)
 		postRight= (post1.center.x > post2.center.x) ? post1 : post2;
 
 		char text[20];  //creating array that will store the print data
-		sprintf(text, "Full Gate");
+		sprintf_s(text, "Full Gate");
 		putText(src, text, Point(10,10), Font_Type, Font_Scale, Font_Colour,2); //Display the text in image window
 	}
 	else if (post1.size.area() > 0  && post2.size.area() == 0)
@@ -373,7 +373,3 @@ void FindGate(Mat inputImage)
 		PrintString(src, "Gate Not Found");
 	}
 }
-
-
-
-

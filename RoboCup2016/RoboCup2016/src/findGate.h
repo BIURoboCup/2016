@@ -1,5 +1,3 @@
-#include "stdafx.h"
-
 using namespace cv;
 
 const Scalar minWhiteHSV = Scalar(0, 0, 170);
