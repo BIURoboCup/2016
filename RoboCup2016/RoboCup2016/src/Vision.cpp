@@ -1,6 +1,5 @@
-
-
 #include "Vision.h"
+#include <math.h>
 
 int Vision::m_type_of_click= 0;
 int Vision::m_Static_mousePos_x=0;

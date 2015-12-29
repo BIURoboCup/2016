@@ -73,29 +73,6 @@ Mat FillHolesInBinrayImage(Mat binaryImage)
 	return resultImage;
 }
 
-/// <summary> 
-/// Gets a BGR Mat and reutrns a B&W Mat. White represent the field part (Including the side strips).
-/// </summary>
-//Mat GetFieldPart(Mat bgrImage)
-//{	
-//	Mat onlyGreenImage;
-//	inRange(bgrImage, minGreenBGR, maxGreenBGR, onlyGreenImage);
-//	/*blur(onlyGreenImage, onlyGreenImage, Size(20, 10));
-//	imshow("green", onlyGreenImage);*/
-//
-//	Mat hsvImage;
-//	Mat onlyWhiteImage;
-//	cvtColor(bgrImage, hsvImage, CV_BGR2HSV);
-//	inRange(hsvImage, minWhiteHSV, maxWhiteHSV, onlyWhiteImage);
-//	//imshow("white", onlyWhiteImage);	
-//
-//	Mat greenAndWhiteImage;
-//	bitwise_or(onlyGreenImage, onlyWhiteImage, greenAndWhiteImage);
-//
-//	Mat field = FillHolesInBinrayImage(greenAndWhiteImage);
-//	return field;
-//}
-
 void help()
 {
 	cout << "\nThis program demonstrates line finding with the Hough transform.\n"
@@ -115,52 +92,32 @@ int main()
 		return -1;
 	}
 
-	FindGate(inputImage);
-
-
-
-	//GreenCalibrationMinHSV = Scalar(41, 13, 42);
-	//GreenCalibrationMaxHSV = Scalar(118, 224, 188);
-	//Mat field = GetFieldPart(inputImage);
-	///*imshow("field", field);
-	//waitKey(0);*/
-
-	//Mat inverseField;
-	//bitwise_not(field, inverseField);
-	//Mat inverseFieldCopy = inverseField.clone();
-	//vector<vector<Point>> contours;
-	//vector<Vec4i> hierarchy;
-	//findContours(inverseFieldCopy, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
-	////drawContours(field, contours, -1, Scalar(0, 0, 255), 2, 8, hierarchy, 0, Point());
-	//imshow("contours", inverseFieldCopy);
-	//imshow("field", inverseField);
-	//waitKey(0);
-
-	/*
-	Mat dst, cdst, white, srcHsv, srcGray;
-	Scalar MIN_HSV(41, 13, 42);
-	Scalar MAX_HSV(118, 224, 188);
-	cvtColor(src, srcHsv, CV_BGR2HSV);
-	inRange(srcHsv, MIN_HSV, MAX_HSV, srcHsv);
-	imshow("grass", srcHsv);
-	imshow("source", src);
+	DetectedGate detectedGate;
+	FindGate(inputImage, detectedGate);
+	DrawGateOnImage(inputImage, detectedGate);
+	//imshow("gate", inputImage);
 	waitKey(0);
-	cvtColor(src, srcGray, CV_BGR2GRAY);
-	inRange(src, Scalar(0, 0, 0), Scalar(50, 255, 50), srcGray);
-	srcGray = InRange(srcGray, Scalar(200, 200, 200));
-	Canny(srcGray, dst, 50, 200, 3);
-	cvtColor(dst, cdst, CV_GRAY2BGR);
-	imshow("canny", cdst);
+
+	Mat field;
+	FindField(inputImage, field);
 	waitKey(0);
-	*///vector<Vec4i> lines;
-	//HoughLinesP(dst, lines, 1, CV_PI / 180, 100, 50, 20);
-	//for (size_t i = 0; i < lines.size(); i++)
-	//{
-	//	Vec4i l = lines[i];
-	//	line(cdst, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
-	//}
-	//imshow("source", srcGray);
-	//imshow("detected lines", cdst);
+
+	Mat onlyWhiteImage;
+	GetWhiteImage(inputImage, onlyWhiteImage);
+
+	Mat canny;
+	Canny(onlyWhiteImage, canny, 50, 200, 3);
+
+	vector<Vec4i> lines;
+	HoughLinesP(canny, lines, 1, CV_PI / 180, 100, 50, 20);
+	for (size_t i = 0; i < lines.size(); i++)
+	{
+		Vec4i l = lines[i];
+		line(inputImage, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 255, 0), 3, CV_AA);
+	}
+
+	imshow("lines", inputImage);
+	waitKey(0);
 
 	return 0;
 }

@@ -16,10 +16,8 @@
 * Comments: None
 * Updated: 23.01.15
 *****************************************************************************************/
-
 #define FRAME_WIDTH 640
 #define FRAME_HEIGHT 480
-
 
 /*****************************************************************************************
 * Owners: All - opencv print to screen Fonts
@@ -49,13 +47,7 @@
 #define U0 FRAME_WIDTH/2
 #define V0 FRAME_HEIGHT/2
 
-#define M_PI 3.147
-#define M_PI_2 3.147
-
 
 //#define AXISTRANSPOSE     //define this for upside-down camera
-
-
-
 
 #endif /* SRC_CONSTS_H_ */
