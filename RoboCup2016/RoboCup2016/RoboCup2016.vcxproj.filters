@@ -12,6 +12,7 @@
     <ClCompile Include="Localiztion.cpp">
       <Filter>Localization</Filter>
     </ClCompile>
+    <ClCompile Include="findGate.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h" />
@@ -25,6 +26,7 @@
     <ClInclude Include="Localization.h">
       <Filter>Localization</Filter>
     </ClInclude>
+    <ClInclude Include="findGate.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />

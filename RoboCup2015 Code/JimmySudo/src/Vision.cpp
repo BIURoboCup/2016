@@ -566,8 +566,8 @@ Ball Vision::Find_Ball(Mat im1)
 		// We find the grass using hsv filter because the green of th grass
 		// 		can be grouped to one chunk in HSV space.
 
-		Scalar MIN_HSV(v[0],v[1],v[2]);
-		Scalar MAX_HSV(v[3],v[4],v[5]);
+		Scalar MIN_HSV(41,13,42);
+		Scalar MAX_HSV(118,224,188);
 		cv::inRange(im1hsv,MIN_HSV,MAX_HSV,grass);
 
 

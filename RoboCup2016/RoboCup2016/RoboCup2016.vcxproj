@@ -85,6 +85,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="findGate.h" />
     <ClInclude Include="Localization.h" />
     <ClInclude Include="Motion.h" />
     <ClInclude Include="Vision.h" />
@@ -92,6 +93,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="findGate.cpp" />
     <ClCompile Include="Localiztion.cpp" />
     <ClCompile Include="Motion.cpp" />
     <ClCompile Include="RoboCup2016.cpp" />

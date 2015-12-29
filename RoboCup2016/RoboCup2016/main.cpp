@@ -96,7 +96,7 @@ int main(int argc, char** argv )
 	imshow( "centerOrgImg", image );*/
 
 	//White lines detection
-	/*vector<Vec4i> lines = findLines(whiteLineImg);
+	vector<Vec4i> lines = findLines(whiteLineImg);
 	printLines(ipmImg,lines);
 	//inverse transform back to original image
     for( size_t i = 0; i < lines.size(); i++ )
@@ -105,7 +105,7 @@ int main(int argc, char** argv )
         		ipm.applyHomographyInv(Point(lines[i][2], lines[i][3])), cv::Scalar(0,0,255), 1);
     }
 	namedWindow( "linesOrgImg", CV_WINDOW_NORMAL );
-	imshow( "linesOrgImg", image );*/
+	imshow( "linesOrgImg", image );
 				 waitKey(0);
 
 	}
