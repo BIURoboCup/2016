@@ -10,33 +10,10 @@
       <Platform>Win32</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\Calibrator\Calibrator\Calibrator.cpp" />
-    <ClCompile Include="Brain\Brain.cpp" />
-    <ClCompile Include="GoalKeeper2016.cpp" />
-    <ClCompile Include="Motion\Motion.cpp" />
-    <ClCompile Include="Vision\DetectedGate.cpp" />
-    <ClCompile Include="Vision\findGate.cpp" />
-    <ClCompile Include="Vision\Vision.cpp" />
-    <ClCompile Include="Vision\VisionUtils.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\Calibrator\Calibrator\Calibrator.h" />
-    <ClInclude Include="Brain\Brain.h" />
-    <ClInclude Include="Constants.h" />
-    <ClInclude Include="Includes.h" />
-    <ClInclude Include="Motion\Motion.h" />
-    <ClInclude Include="Motion\MotionIncludes.h" />
-    <ClInclude Include="Vision\DetectedGate.h" />
-    <ClInclude Include="Vision\DetectedObject.h" />
-    <ClInclude Include="Vision\findGate.h" />
-    <ClInclude Include="Vision\Vision.h" />
-    <ClInclude Include="Vision\VisionUtils.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{2D441CEE-31E3-4E05-B690-37BB7146E8E2}</ProjectGuid>
+    <ProjectGuid>{6274AC00-7178-49BB-A1EE-F99121C655BC}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>GoalKeeper2016</RootNamespace>
+    <RootNamespace>Calibrator</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -64,15 +41,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\arabinow\git\RoboCup2016\RoboCup2016\HROS5-Framework\Framework\include;C:\Users\arabinow\git\RoboCup2016\RoboCup2016\HROS5-Framework\Linux\include;C:\opencv\build\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\opencv\build\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\opencv\build\x86\vc12\lib;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\Users\arabinow\git\RoboCup2016\RoboCup2016\Calibrator\Calibrator;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Users\arabinow\git\RoboCup2016\RoboCup2016\HROS5-Framework\Framework\include;C:\Users\arabinow\git\RoboCup2016\RoboCup2016\HROS5-Framework\Linux\include;C:\opencv\build\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\opencv\build\include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\opencv\build\x86\vc12\lib;$(LibraryPath)</LibraryPath>
-    <SourcePath>C:\Users\arabinow\git\RoboCup2016\RoboCup2016\Calibrator\Calibrator;$(SourcePath)</SourcePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -81,7 +56,6 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\arabinow\git\RoboCup2016\RoboCup2016\Calibrator\Calibrator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -98,7 +72,6 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\Users\arabinow\git\RoboCup2016\RoboCup2016\Calibrator\Calibrator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -108,6 +81,13 @@
       <AdditionalDependencies>opencv_calib3d2411d.lib;opencv_contrib2411d.lib;opencv_core2411d.lib;opencv_features2d2411d.lib;opencv_flann2411d.lib;opencv_gpu2411d.lib;opencv_highgui2411d.lib;opencv_imgproc2411d.lib;opencv_legacy2411d.lib;opencv_ml2411d.lib;opencv_nonfree2411d.lib;opencv_objdetect2411d.lib;opencv_photo2411d.lib;opencv_stitching2411d.lib;opencv_ts2411d.lib;opencv_video2411d.lib;opencv_videostab2411d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Calibrator.cpp" />
+    <ClCompile Include="Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Calibrator.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

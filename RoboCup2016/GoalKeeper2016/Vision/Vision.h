@@ -8,11 +8,13 @@ public:
 	Vision();
 	~Vision();
 
-	DetectedObject* FindBall(Mat& image);
-	DetectedObject* FindGate(Mat& image);
+	DetectedObject* SafeGetDetectedBall();
+	DetectedObject* SafeGetDetectedGate();
 
 private:
-	void ReadCalibration(const char* calibrationFilePath);
-	void ParseLineFromCalibrationFile(string line);
+	void RunVisionThread();
+
+	DetectedObject* FindBall(Mat& image);
+	DetectedObject* FindGate(Mat& image);
 };
 

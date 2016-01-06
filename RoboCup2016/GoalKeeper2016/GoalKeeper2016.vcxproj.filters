@@ -15,6 +15,21 @@
     <Filter Include="Source Files\Vision">
       <UniqueIdentifier>{29b616f1-1e70-4c46-ae33-310f893cc40b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Motion">
+      <UniqueIdentifier>{bacec65f-93ba-4364-b51c-8b4ae5d78495}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Motion">
+      <UniqueIdentifier>{12a85885-64a5-4734-b9df-35db1d6464e9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Calibrator">
+      <UniqueIdentifier>{1832cf1c-bb28-4753-a72f-1da4372f9d44}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Brain">
+      <UniqueIdentifier>{cf21b78d-c5e3-490c-9416-93901a8c4627}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Brain">
+      <UniqueIdentifier>{58cb3ddc-fbf4-4a8f-b7d6-b18172090d14}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="GoalKeeper2016.cpp">
@@ -31,6 +46,15 @@
     </ClCompile>
     <ClCompile Include="Vision\VisionUtils.cpp">
       <Filter>Source Files\Vision</Filter>
+    </ClCompile>
+    <ClCompile Include="Motion\Motion.cpp">
+      <Filter>Source Files\Motion</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Calibrator\Calibrator\Calibrator.cpp">
+      <Filter>Calibrator</Filter>
+    </ClCompile>
+    <ClCompile Include="Brain\Brain.cpp">
+      <Filter>Source Files\Brain</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -54,6 +78,18 @@
     </ClInclude>
     <ClInclude Include="Vision\VisionUtils.h">
       <Filter>Header Files\Vision</Filter>
+    </ClInclude>
+    <ClInclude Include="Motion\Motion.h">
+      <Filter>Header Files\Motion</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Calibrator\Calibrator\Calibrator.h">
+      <Filter>Calibrator</Filter>
+    </ClInclude>
+    <ClInclude Include="Motion\MotionIncludes.h">
+      <Filter>Header Files\Motion</Filter>
+    </ClInclude>
+    <ClInclude Include="Brain\Brain.h">
+      <Filter>Header Files\Brain</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

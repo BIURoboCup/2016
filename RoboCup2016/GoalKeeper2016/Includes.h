@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <fstream>
 #include <math.h>
@@ -9,3 +11,5 @@ using namespace std;
 #include "opencv2/flann/miniflann.hpp"
 using namespace cv;
 using namespace cv::flann;
+
+// Linux engines includes
