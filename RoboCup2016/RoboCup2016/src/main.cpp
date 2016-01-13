@@ -6,11 +6,12 @@
  */
 
 #include "BrainAndMotion.h"
-
-
-pthread_t VisionT = 0;
-bool runthr= true;
-void* VisionThread(void*);
+#include "opencv2/flann/logger.h"
+void 		freeAllEngines(Robot::CM730 *cm730);
+string  	convertIntToString(int number);
+pthread_t 	VisionT = 0;
+bool 		runthr= true;
+void* 		VisionThread(void*);
 
 S_StateStruct StateList[] =
 {
@@ -45,16 +46,20 @@ void change_current_dir()
 
 int main(void)
 {
+
     time_t rawtime;
     struct tm * timeinfo;
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
     stringstream p;
-    p<<"[" << timeinfo->tm_hour<< ":"<< timeinfo->tm_min << ":" << timeinfo->tm_sec <<"]";
-	std::string logname = "/home/robot/Desktop/LOG";
+    p<<"[" << timeinfo->tm_hour<< ":"<< timeinfo->tm_min << ":" << timeinfo->tm_sec <<"]";//defines log files name
+	std::string logname = "/home/robot/Logs/log";
 	logname+=p.str();
     startLog(logFile,logname);
-
+    cvflann::Logger::setDestination("/home/robot/Logs/log_rami_and_lihen");
+    cvflann::Logger::setLevel(4);
+    char* test_text = "works";
+    cvflann::Logger::log(1,test_text);
 	if (sem_init(&ball_sem, 0, 1) != 0)
 	{
 		printf("Couldn't sem_init\n");
@@ -226,6 +231,7 @@ Head::GetInstance()->m_Joint.SetEnableHeadOnly(true, true);
 	}
 
 	runthr=false;
+
 	writeToLog(logFile,"normal exit");
 	endLog(logFile);
 	pthread_join(VisionT, NULL);
@@ -234,8 +240,10 @@ Head::GetInstance()->m_Joint.SetEnableHeadOnly(true, true);
 		printf("Couldn't sem_destroy\n");
 	}
 
+	freeAllEngines(&cm730);
     return 0;
 }
+
 
 
 void* VisionThread(void*)
@@ -423,7 +431,36 @@ void* VisionThread(void*)
 }
 
 
+#define TURN_LEFT 		0
+#define TURN_RIGHT 		1
+#define SIZE_OF_X_ARRAY 10
+int FindTurnDirection(){
 
+	if (sem_wait(&ball_sem) != 0)
+		printf("Couldn't sem_wait\n");
+
+	S_BrainBall ball_location = BrainBall;
+
+	if (sem_post(&ball_sem) != 0)
+		printf("Couldn't sem_post\n");
+
+
+	int max_value_index=0, max_value=0;
+	for (int i=0; i <SIZE_OF_X_ARRAY;i++){
+		writeToLog(logFile,"FindTurnDirection: index is ",convertIntToString(i));
+		writeToLog(logFile,"FindTurnDirection: value is ",convertIntToString(ball_location.x_place[i]));
+		if (ball_location.x_place[i]>max_value){
+			max_value_index = i;
+			max_value = ball_location.x_place[i];
+		}
+	}
+	int temp = ((max_value_index < (SIZE_OF_X_ARRAY/2)) ? TURN_LEFT : TURN_RIGHT);
+	writeToLog(logFile,"FindTurnDirection: max_value_index= ",convertIntToString(max_value_index));
+	writeToLog(logFile,"FindTurnDirection: max_value= ",convertIntToString(max_value));
+	writeToLog(logFile,"FindTurnDirection: decision returned= ",convertIntToString(temp));
+	printf("   FindTurnDirection: max_value_index=%d, max_value=%d, decision returned=%d",max_value_index,max_value,temp);
+	return ((max_value_index < (SIZE_OF_X_ARRAY/2)) ? TURN_LEFT : TURN_RIGHT);
+}
 
 /*****************************************************************************************
 * Method Name: play
@@ -435,6 +472,7 @@ void* VisionThread(void*)
 void play()
 {
 	int headPosCheck = 1;
+	int counter_ball_not_found=0;
 	E_HeadPosition HeadPosition = LUnknown;
 	writeToLog(logFile,"HeadPosition = LUnknown");
 
@@ -458,7 +496,7 @@ void play()
 		if (State == Init)
 		{
 			writeToLog(logFile,"State == Init");
-			Action::GetInstance()->Start(9);
+			Action::GetInstance()->Start(1);
 			while(Action::GetInstance()->IsRunning()) usleep(8*1000);
 			SetTilt(0,0);
 			HeadPosition = LookingStraight;
@@ -473,7 +511,7 @@ void play()
 			Head::GetInstance()->m_Joint.SetEnableHeadOnly(true, true);
 			writeToLog(logFile,"State == LookForBall");
 
-	    	//sleep(1);
+	    	//sleep(1);qqq
 	    	if (ball1.found)
 	    	{
 	    		State = GoToBall;
@@ -534,7 +572,10 @@ void play()
 			HeadPosition = LookingStraightDown;
 			writeToLog(logFile,"HeadPosition = LookingStraightDown");
 
-			GoTo(0,StateList[State].stateString,ball1.x_ball_spot);
+			int turn_direction = (FindTurnDirection()) ? TURN_HARD_RIGHT_DIR : TURN_HARD_LEFT_DIR;
+			writeToLog(logFile,"turn_direction is", convertIntToString(turn_direction));
+			printf("change spot: turn_direction %d",turn_direction);
+			GoTo(turn_direction,StateList[State].stateString,ball1.x_ball_spot);
 
 			for (int i=0; i<10; i++) // go forward 40 cm
 			{
@@ -571,10 +612,15 @@ void play()
 
 			if (ball1.found == false)
 			{
-				State = LookForBall;
+				++counter_ball_not_found;
+				writeToLog(logFile,"counter_ball_not_found value is",convertIntToString(counter_ball_not_found));
+				if (counter_ball_not_found==3){
+					State = LookForBall;
+				}
 			}
 			else if (HeadPosition == LookingStraight)
 			{
+				counter_ball_not_found=0;
 				if(ball1.x_ball_spot > 3 && ball1.x_ball_spot < 7)
 				{
 					GoTo(0,StateList[State].stateString,ball1.x_ball_spot); //forward
@@ -591,6 +637,7 @@ void play()
 			}
 			else if (HeadPosition == LookingStraightDown)
 			{
+				counter_ball_not_found=0;
 				if(ball1.center.y < 360)
 				{
 					if(ball1.x_ball_spot > 3 && ball1.x_ball_spot < 7)
@@ -603,6 +650,7 @@ void play()
 					}
 					else if(ball1.x_ball_spot > 6)
 					{
+
 						GoTo(-(dir % 5),StateList[State].stateString,ball1.x_ball_spot);  //right
 					}
 					writeToLog(logFile,"GoToBall - LookingStraightDown >360");
@@ -619,6 +667,7 @@ void play()
 			}
 			else if (HeadPosition == LookingRight)
 			{
+				counter_ball_not_found=0;
 				if(ball1.x_ball_spot < 6)
 				{
 					GoTo(-(dir+1),StateList[State].stateString,ball1.x_ball_spot);
@@ -635,6 +684,7 @@ void play()
 			}
 			else if (HeadPosition == LookingLeft)
 			{
+				counter_ball_not_found=0;
 				if(ball1.x_ball_spot < 6)
 				{
 					GoTo(8-dir,StateList[State].stateString,ball1.x_ball_spot);
@@ -687,12 +737,15 @@ void play()
 
 //				if (ball1.center.y<420)
 //					sleep(15);
-//				else
-					sleep(11);
+//				sleep(11)
+					sleep(5);
 
 
 				GoStop();
 				writeToLog(logFile,"Kick");
+				Action::GetInstance()->Start(1);
+				while(Action::GetInstance()->IsRunning()) usleep(8*1000);
+
 				Action::GetInstance()->Start(2);
 				while(Action::GetInstance()->IsRunning()) usleep(8*1000);
 			}
@@ -733,7 +786,7 @@ void GoTo(const double& dir,std::string state,int x_ball_spot)
 		if (dir==0)
 			writeToLog(logFile,"Going Forward",state,dir,x_ball_spot);
 		else if (dir>0)
-			writeToLog(logFile,"Turning Lrft",state,dir,x_ball_spot);
+			writeToLog(logFile,"Turning Left",state,dir,x_ball_spot);
 		else
 			writeToLog(logFile,"Turning Right",state,dir,x_ball_spot);
 
@@ -754,7 +807,7 @@ void GoTo(const double& dir,std::string state,int x_ball_spot)
 		else if (dir>0)
 			writeToLog(logFile,"Turning Left",state,dir,x_ball_spot);
 		else
-			writeToLog(logFile,"Turning Rigt",state,dir,x_ball_spot);
+			writeToLog(logFile,"Turning Right",state,dir,x_ball_spot);
 
 		Walking::GetInstance()->A_MOVE_AMPLITUDE = dir;
 	}
@@ -806,3 +859,33 @@ void GoStop()
 }
 
 
+
+/*****************************************************************************************
+* Method Name: freeAllEngines
+* Description: free all engines for exiting
+* Arguments: None
+* Return Values: none
+* Wrote: YanivS & AsafB
+*****************************************************************************************/
+void freeAllEngines(Robot::CM730 *cm730)
+{
+		char key;
+		printf("Do you want to free all the engines? [y/n] \n");
+		cin >> key ;
+		if(key == 'y' || key == 'Y')
+			cm730->WriteByte(CM730::ID_CM, MX28::P_TORQUE_ENABLE, 0, 0);
+
+}
+
+/*****************************************************************************************
+* Method Name: convertIntToString
+* Description: convert int to string (for counter to print in logfile)
+* Arguments: None
+* Return Values: none
+* Wrote: YanivS & AsafB
+*****************************************************************************************/
+string convertIntToString(int number){
+	ostringstream convert;
+	convert << number;
+	return convert.str();
+}
