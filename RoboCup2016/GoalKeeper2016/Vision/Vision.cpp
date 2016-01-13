@@ -6,9 +6,116 @@ Vision::Vision()
 	RunVisionThread();
 }
 
+Vision::~Vision()
+{
+}
+
+void ParseLineFromCalibrationFile(string line)
+{
+	string key = line.substr(0, 12);
+	size_t keyStart = line.find('[');
+	size_t keyEnd = line.find(']');
+	int value = atoi(line.substr(keyStart + 1, keyEnd - keyStart).c_str());
+
+	if (key == "White: H_min") minWhiteHSV[0] = value;
+	if (key == "White: S_min") minWhiteHSV[1] = value;
+	if (key == "White: V_min") minWhiteHSV[2] = value;
+
+	if (key == "White: H_max") maxWhiteHSV[0] = value;
+	if (key == "White: S_max") maxWhiteHSV[1] = value;
+	if (key == "White: V_max") maxWhiteHSV[2] = value;
+
+	if (key == "Green: B_min") minGreenBGR[0] = value;
+	if (key == "Green: G_min") minGreenBGR[1] = value;
+	if (key == "Green: R_min") minGreenBGR[2] = value;
+
+	if (key == "Green: B_max") maxGreenBGR[0] = value;
+	if (key == "Green: G_max") maxGreenBGR[1] = value;
+	if (key == "Green: R_max") maxGreenBGR[2] = value;
+}
+
+void Vision::ReadCalibrationFromFile()
+{
+	static const char* calibrationFilePath = "/home/laptopyellow/Desktop/RoboCup2016/RoboCup2016/RoboCup2016/GoalKeeper2016/calibration.txt";
+	string line;
+	ifstream myfile(calibrationFilePath);
+
+	if (myfile.is_open())
+	{
+		while (getline(myfile, line))
+		{
+			ParseLineFromCalibrationFile(line);
+		}
+		myfile.close();
+	}
+
+	else
+	{
+		cout << "Unable to open color config file";
+	}
+}
+
+void* VisionActionAsync(void* object)
+{
+	Vision* vision = (Vision*)object;
+
+	const string outputFile = "/home/laptopyellow/Desktop/RoboCup2016/RoboCup2016/RoboCup2016/GoalKeeper2016/demo.avi";
+
+	VideoCapture videoCapture;
+	VideoWriter outputVideo;
+
+	vision->OpenCamera(videoCapture);
+	outputVideo.open(outputFile, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH,FRAME_HEIGHT), true);
+
+	while (true)
+	{
+		Mat currentFrame;
+		videoCapture >> currentFrame;
+
+		// Close the Frame & save settings by clicking 'q'.
+		char exitKey = waitKey(30);
+		if (exitKey == 'q')
+		{
+			break;
+		}
+
+		DetectedObject* detectedGate = vision->m_gateDetector.FindGate(currentFrame);
+		detectedGate->Draw(currentFrame);
+		imshow("gate", currentFrame);
+
+		outputVideo.write(currentFrame);
+	}
+
+	return NULL;
+}
+
 
 void Vision::RunVisionThread()
 {
+	pthread_t* visionThread;
 
+	VisionActionAsync (this);
+
+	while (1) {}
 }
-	
+
+void Vision::OpenCamera(VideoCapture& videoCapture)
+{
+	int tries = 0;
+
+	videoCapture.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
+	videoCapture.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
+
+
+	while (!videoCapture.open(0))
+	{
+		printf("trying to open camera\n");
+		if (++tries > 10)
+		{
+			printf("Couldn't open camera capture, gave up\n");
+			throw new string("Couldn't open camera");
+		}
+		printf("couldn't open camera capture, try #%d\n", tries);
+	}
+}
+

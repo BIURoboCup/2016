@@ -42,16 +42,23 @@ void DetectedGate::Draw(Mat& image)
 {
 	if (DetectedPost == E_DetectedPost_BOTH)
 	{
-		DrawRectangle(image, LeftPost);
-		DrawRectangle(image, RightPost);
-		DrawPoint(image, Center);
+		DrawRectangle(image, LeftPost, Scalar(255,0,0), 2);
+		DrawRectangle(image, RightPost, Scalar(255,0,0), 2);
+		DrawPoint(image, Center, Scalar(255,0,255), 3);
+		PrintStringOnImage(image, "Full Gate");
 	}
 	if (DetectedPost == E_DetectedPost_LEFT)
 	{
-		DrawRectangle(image, LeftPost);
+		DrawRectangle(image, LeftPost, Scalar(255,0,0), 2);
+		PrintStringOnImage(image, "Left post -->");
 	}
 	if (DetectedPost == E_DetectedPost_RIGHT)
 	{
-		DrawRectangle(image, RightPost);
+		DrawRectangle(image, RightPost, Scalar(255,0,0), 2);
+		PrintStringOnImage(image, "Right post <--");
+	}
+	if (DetectedPost == E_DetectedPost_NONE)
+	{
+		PrintStringOnImage(image, "Gate not found");
 	}
 }

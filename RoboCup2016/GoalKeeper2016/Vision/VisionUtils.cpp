@@ -1,5 +1,10 @@
 #include "VisionUtils.h"
 
+Scalar minWhiteHSV = Scalar(0, 0, 170);
+Scalar maxWhiteHSV = Scalar(255, 50, 255);
+Scalar minGreenBGR = Scalar(0, 70, 0);
+Scalar maxGreenBGR = Scalar(100, 255, 100);
+
 void ImageShowOnDebug(const string& winName, Mat image)
 {
 #define DEBUG 1
@@ -9,18 +14,18 @@ void ImageShowOnDebug(const string& winName, Mat image)
 	}
 }
 
-void DrawPoint(Mat &image, Point2i &point)
+void DrawPoint(Mat &image, Point2i &point, Scalar color, int thickness)
 {
-	circle(image, point, 10, Scalar(0, 0, 255));
+	circle(image, point, 10, color, 1);
 }
 
-void DrawRectangle(Mat &image, RotatedRect &rect)
+void DrawRectangle(Mat &image, RotatedRect &rect, Scalar color, int thickness)
 {
 	Point2f rect_points[4];
 	rect.points(rect_points);
 	for (int j = 0; j < 4; j++)
 	{
-		line(image, rect_points[j], rect_points[(j + 1) % 4], Scalar(0, 0, 255));
+		line(image, rect_points[j], rect_points[(j + 1) % 4], color, thickness);
 	}
 }
 
@@ -30,7 +35,7 @@ void FindField(Mat& inputImage, Mat& field)
 	inRange(inputImage, minGreenBGR, maxGreenBGR, onlyGreenImage);
 	Mat grass_cpy = onlyGreenImage.clone();
 	Mat raw_shapes;
-
+	ImageShowOnDebug("grass_cpy",grass_cpy);
 	vector<vector<Point> > _contours; // Each contour stored as an array of points according to API.
 	vector<Vec4i> _heir;
 
@@ -82,9 +87,9 @@ void GetWhiteImage(Mat& inputImage, Mat& onlyWhiteImage)
 
 void PrintStringOnImage(Mat &src, const char* string_to_print)
 {
-	char text[20];  //creating array that will store the print data
-	sprintf_s(text, string_to_print);
+	char text[40];  //creating array that will store the print data
+	sprintf(text, string_to_print);
 	putText(src, text, Point(10, 50), Font_Type, Font_Scale, Font_Colour, 2); //Display the text in image window
 	ImageShowOnDebug("text", src);
-	cout << string_to_print;
+	cout << string_to_print << "\n";
 }

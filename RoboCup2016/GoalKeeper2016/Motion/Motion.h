@@ -5,8 +5,8 @@
 struct S_HeadTilt
 {
 	// Tilt is up-down. Pan is right-left.
-	int TiltAngle;
-	int PanAngle;
+	int Tilt;
+	int Pan;
 };
 
 class Motion
@@ -22,6 +22,7 @@ public:
 
 	// Returns true as long as any motion is being done
 	bool IsRunning();
+	void WaitForActionFinish();
 };
 
 

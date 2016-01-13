@@ -1,15 +1,17 @@
 #include "../Includes.h"
 
-#ifdef MX28_1024
-#define MOTION_FILE_PATH    "/home/robot/Robot1/Data/motion_1024.bin"
-#else
-#define MOTION_FILE_PATH    "/home/robot/Robot1/Data/motion_4096.bin"
-#endif
-/*
-#ifdef MX28_1024
-#define MOTION_FILE_PATH    "/home/robot/Desktop/Walk/Data/motion_1024.bin"
-#else
-#define MOTION_FILE_PATH    "/home/robot/Desktop/Walk/Data/motion_4096.bin"
-#endif
-*/
-#define INI_FILE_PATH    "/home/robot/Robot1/Data/config.ini"
+#include "Camera.h"
+#include "Point.h"
+#include "mjpg_streamer.h"
+#include "minIni.h"
+#include "LinuxCamera.h"
+#include "ColorFinder.h"
+#include "Action.h"
+#include "Head.h"
+#include "Walking.h"
+#include "MX28.h"
+#include "MotionManager.h"
+#include "LinuxMotionTimer.h"
+#include "LinuxCM730.h"
+#include "LinuxActionScript.h"
+#include "JointData.h"

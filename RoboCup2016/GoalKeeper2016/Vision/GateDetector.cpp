@@ -1,4 +1,4 @@
-#include "findGate.h"
+#include "GateDetector.h"
 
 /*****************************************************************************************
 * Method Name: FindGate
@@ -11,7 +11,7 @@
 * Return Values: DetectedGate object
 * Owner: Hen Shoob, Assaf Rabinowitz
 *****************************************************************************************/
-DetectedObject* FindGate(Mat& inputImage)
+DetectedObject* GateDetector::FindGate(Mat& inputImage)
 {
 	Mat onlyWhiteImage;
 	GetWhiteImage(inputImage, onlyWhiteImage);
@@ -45,11 +45,11 @@ DetectedObject* FindGate(Mat& inputImage)
 	Mat field;
 	FindField(inputImage, field);
 
-	//Shwoing the contours + field in one image
+	//Showing the contours + field in one image
 	cvtColor(canny, canny, CV_BGR2GRAY);
-	Mat or;
-	bitwise_or(field, canny, or);
-	ImageShowOnDebug("convex", or);
+//	Mat or;
+//	bitwise_or(field, canny, or);
+//	ImageShowOnDebug("convex", or);
 
 	vector<RotatedRect> post1Candidates;
 	FindPostCandidates(field, minRect, post1Candidates);
@@ -75,13 +75,11 @@ DetectedObject* FindGate(Mat& inputImage)
 
 	if (post1.size.area() > 0 && post2.size.area() > 0)
 	{
-		PrintStringOnImage(src, "Full Gate");
 		return new DetectedGate(post1, post2);
 	}
 
 	if (post1.size.area() == 0 && post2.size.area() == 0)
 	{
-		PrintStringOnImage(src, "Gate Not Found");
 		return new DetectedGate();
 	}
 
@@ -96,7 +94,7 @@ DetectedObject* FindGate(Mat& inputImage)
 
 	//counting white pixels near the top of the post on both sides
 	// We set the range to look for white pixels in the upper post.
-	float upperPostTop = MAX(post1.center.y - longSide / 2 - 5, 0);
+	float upperPostTop = MAX(post1.center.y - longSide / 2 - 10, 0);
 	float upperPostButtom = upperPostTop + shortSide + 5;	
 
 	//Counting near the left post
@@ -111,12 +109,10 @@ DetectedObject* FindGate(Mat& inputImage)
 	
 	if (rightCounter > leftCounter  &&  rightCounter - leftCounter > 5)
 	{
-		PrintStringOnImage(src, "Left post -->");
 		return new DetectedGate(post1, E_DetectedPost_LEFT);
 	}
 	else if (rightCounter < leftCounter  &&  leftCounter - rightCounter > 5)
 	{
-		PrintStringOnImage(src, "Right post <--");
 		return new DetectedGate(post1, E_DetectedPost_RIGHT);
 	}
 	else
@@ -126,20 +122,18 @@ DetectedObject* FindGate(Mat& inputImage)
 	}	
 }
 
-int CountAndDrawWhitePixels(Mat& BWImage, Mat&outputImageToDraw, float top, float buttom, float left, float right)
+int GateDetector::CountAndDrawWhitePixels(Mat& BWImage, Mat&outputImageToDraw, float top, float buttom, float left, float right)
 {
 	int counter = 0;
 
-	for (size_t i = top; i < buttom; i++)
+	for (size_t y = top; y < buttom; y++)
 	{
-		for (size_t j = left; j < right; j++)
+		for (size_t x = left; x < right; x++)
 		{
-			if (BWImage.at<unsigned char>(i, j) > 100)
+			if (BWImage.at<unsigned char>(y, x) > 100)
 			{
 				counter++;
-				outputImageToDraw.at<Vec3b>(i, j)[0] = 255;
-				outputImageToDraw.at<Vec3b>(i, j)[1] = 0;
-				outputImageToDraw.at<Vec3b>(i, j)[2] = 0;
+				outputImageToDraw.at<Vec3b>(y, x) = Vec3b(255,0,0);
 			}
 		}
 	}
@@ -148,7 +142,7 @@ int CountAndDrawWhitePixels(Mat& BWImage, Mat&outputImageToDraw, float top, floa
 }
 
 //finding the largest rectangle among the qualified
-RotatedRect FindLargestCandidate(vector<RotatedRect>& postCandidates)
+RotatedRect GateDetector::FindLargestCandidate(vector<RotatedRect>& postCandidates)
 {
 	RotatedRect largestCandidate;
 	if (postCandidates.size() > 0)
@@ -169,7 +163,7 @@ RotatedRect FindLargestCandidate(vector<RotatedRect>& postCandidates)
 	return largestCandidate;
 }
 
-void GetVerticalObjects(Mat &BWImage)
+void GateDetector::GetVerticalObjects(Mat &BWImage)
 {
 	//dilation of white to horizontaly fill the shapes
 	Mat elementG1 = getStructuringElement(MORPH_RECT, Size(3, 5), Point(2, 2));
@@ -184,14 +178,14 @@ void GetVerticalObjects(Mat &BWImage)
 	dilate(BWImage, BWImage, elementG3);
 }
 
-void GetHorizontalObjects(Mat &BWImage)
+void GateDetector::GetHorizontalObjects(Mat &BWImage)
 {
 	//dilation of white to fill the shapes
 	Mat elementG4 = getStructuringElement(MORPH_RECT, Size(5, 3), Point(2, 2));
 	dilate(BWImage, BWImage, elementG4);
 }
 
-bool IsPartiallyOnField(Mat& field, Point2f bottomPoint, Point2f topPoint)
+bool GateDetector::IsPartiallyOnField(Mat& field, Point2f bottomPoint, Point2f topPoint)
 {
 	bottomPoint.y = (bottomPoint.y + 30 <= FRAME_HEIGHT) ? bottomPoint.y + 30 : bottomPoint.y;
 
@@ -199,12 +193,12 @@ bool IsPartiallyOnField(Mat& field, Point2f bottomPoint, Point2f topPoint)
 		&& field.at<unsigned char>(topPoint) < 100);
 }
 
-bool IsAngleStraight(float angle)
+bool GateDetector::IsAngleStraight(float angle)
 {
 	return (angle > -10 && angle < 10) || (100 > angle && angle > 80) || (-100 < angle && angle < -80);
 }
 
-void FindPostCandidates(Mat& field, vector<RotatedRect>& minRect, vector<RotatedRect>& postCandidates)
+void GateDetector::FindPostCandidates(Mat& field, vector<RotatedRect>& minRect, vector<RotatedRect>& postCandidates)
 {
 	// Check foreach rect:
 	// 1. Bottom of the rectangle is close enough to the field.

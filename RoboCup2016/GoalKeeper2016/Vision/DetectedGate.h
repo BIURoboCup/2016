@@ -21,10 +21,10 @@ public:
 	virtual void Draw(Mat& image);
 
 	DetectedGate();
+	~DetectedGate();
+
 	DetectedGate(RotatedRect post1, RotatedRect post2);
 	DetectedGate(RotatedRect post, E_DetectedPost detectedPost);
-
-	~DetectedGate();
 };
 
 

@@ -3,6 +3,9 @@
 #include <iostream>
 #include <fstream>
 #include <math.h>
+#include <string.h>
+#include <pthread.h>
+#include <semaphore.h>
 using namespace std;
 
 // OpenCV includes
@@ -11,5 +14,3 @@ using namespace std;
 #include "opencv2/flann/miniflann.hpp"
 using namespace cv;
 using namespace cv::flann;
-
-// Linux engines includes
