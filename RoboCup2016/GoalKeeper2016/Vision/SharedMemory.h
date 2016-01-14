@@ -2,14 +2,16 @@
 #define SHAREDMEMORY_H_
 
 #include "DetectedObject.h"
+#include <semaphore.h>
 
 class SharedMemory {
 public:
+	SharedMemory(DetectedObject* object);
 	SharedMemory();
 	~SharedMemory();
 
 	DetectedObject* SafeRead();
-	void SafeWrite(DetectedObject& objectToWrite);
+	void SafeWrite(DetectedObject* objectToWrite);
 
 private:
 	sem_t m_semaphore;

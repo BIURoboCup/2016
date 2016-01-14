@@ -5,6 +5,14 @@ Scalar maxWhiteHSV = Scalar(255, 50, 255);
 Scalar minGreenBGR = Scalar(0, 70, 0);
 Scalar maxGreenBGR = Scalar(100, 255, 100);
 
+namespace Colors
+{
+	Scalar Blue = Scalar(255, 0, 0);
+	Scalar Red = Scalar(0, 0, 255);
+	Scalar Green = Scalar(0, 255, 0);
+	Scalar Purple = Scalar(255, 0, 255);
+}
+
 void ImageShowOnDebug(const string& winName, Mat image)
 {
 #define DEBUG 1
@@ -14,7 +22,7 @@ void ImageShowOnDebug(const string& winName, Mat image)
 	}
 }
 
-void DrawPoint(Mat &image, Point2i &point, Scalar color, int thickness)
+void DrawPoint(Mat &image, Point2f &point, Scalar color, int thickness)
 {
 	circle(image, point, 10, color, 1);
 }

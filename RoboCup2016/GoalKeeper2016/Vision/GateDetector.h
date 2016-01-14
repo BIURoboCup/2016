@@ -10,6 +10,8 @@ public:
 	~GateDetector();
 	DetectedObject* FindGate(Mat& inputImage);
 
+	static inline DetectedObject* GetDefault() {return new DetectedGate();}
+
 private:
 	int CountAndDrawWhitePixels(Mat& BWImage, Mat&outputImageToDraw, float top, float buttom, float left, float right);
 	RotatedRect FindLargestCandidate(vector<RotatedRect>& postCandidates);

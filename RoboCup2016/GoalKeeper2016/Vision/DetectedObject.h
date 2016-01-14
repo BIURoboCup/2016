@@ -9,7 +9,7 @@
 class DetectedObject
 {
 public:
-	Point2i Center;
+	Point2f Center;
 	float Distance;
 
 	virtual bool IsDetected() = 0;

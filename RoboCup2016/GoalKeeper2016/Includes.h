@@ -1,11 +1,12 @@
-#pragma once
+#ifndef _INCLUDES_H_
+#define _INCLUDES_H_
 
 #include <iostream>
 #include <fstream>
 #include <math.h>
 #include <string.h>
 #include <pthread.h>
-#include <semaphore.h>
+#include <unistd.h>
 using namespace std;
 
 // OpenCV includes
@@ -14,3 +15,5 @@ using namespace std;
 #include "opencv2/flann/miniflann.hpp"
 using namespace cv;
 using namespace cv::flann;
+
+#endif

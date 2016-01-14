@@ -1,13 +1,30 @@
 #include "Vision.h"
 
-Vision::Vision()
+
+void* VisionActionAsync(void*);
+
+Vision::Vision():
+m_gateSharedMemory(GateDetector::GetDefault()), m_ballSharedMemory(BallDetector::GetDefault())
 {
 	ReadCalibrationFromFile();
-	RunVisionThread();
 }
 
 Vision::~Vision()
 {
+}
+
+Vision* Vision::m_instance = NULL;
+Vision* Vision::GetInstance()
+{
+    if(m_instance == NULL)
+    {
+    	m_instance = new Vision();
+        return m_instance;
+    }
+    else
+    {
+        return m_instance;
+    }
 }
 
 void ParseLineFromCalibrationFile(string line)
@@ -55,9 +72,9 @@ void Vision::ReadCalibrationFromFile()
 	}
 }
 
-void* VisionActionAsync(void* object)
+void* VisionActionAsync(void*)
 {
-	Vision* vision = (Vision*)object;
+	Vision* vision = Vision::GetInstance();
 
 	const string outputFile = "/home/laptopyellow/Desktop/RoboCup2016/RoboCup2016/RoboCup2016/GoalKeeper2016/demo.avi";
 
@@ -81,7 +98,10 @@ void* VisionActionAsync(void* object)
 
 		DetectedObject* detectedGate = vision->m_gateDetector.FindGate(currentFrame);
 		detectedGate->Draw(currentFrame);
-		imshow("gate", currentFrame);
+		DetectedObject* detectedBall = vision->m_ballDetector.FindBall(currentFrame);
+		detectedBall->Draw(currentFrame);
+
+		imshow("Output", currentFrame);
 
 		outputVideo.write(currentFrame);
 	}
@@ -92,11 +112,13 @@ void* VisionActionAsync(void* object)
 
 void Vision::RunVisionThread()
 {
-	pthread_t* visionThread;
+	pthread_t visionThread;
 
-	VisionActionAsync (this);
-
-	while (1) {}
+	if(1 == pthread_create(&visionThread, NULL, VisionActionAsync, NULL))
+	{
+		fprintf(stderr, "Couldn't create Vision thread\n");
+		exit(1);
+	}
 }
 
 void Vision::OpenCamera(VideoCapture& videoCapture)
