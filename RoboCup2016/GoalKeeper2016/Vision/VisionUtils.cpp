@@ -15,7 +15,7 @@ namespace Colors
 
 void ImageShowOnDebug(const string& winName, Mat image)
 {
-#define DEBUG 1
+#define DEBUG 0
 	if (DEBUG == 1)
 	{
 		imshow(winName, image);

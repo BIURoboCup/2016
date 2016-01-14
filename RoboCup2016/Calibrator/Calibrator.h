@@ -1,11 +1,11 @@
-#include "../../GoalKeeper2016/Includes.h"
-#include "../../GoalKeeper2016/Constants.h"
+#include "../GoalKeeper2016/Includes.h"
+#include "../GoalKeeper2016/Constants.h"
 
 #define ImageWindow "Image"
 #define CalibrationWindow "Calibration"
 #define TrackbarGreenOrWhite "Green or White"
 
-static const char* calibrationFilePath = "C:\\Users\\arabinow\\git\\RoboCup2016\\RoboCup2016\\Calibrator\\calibration.txt";
+static const char* calibrationFilePath = "/home/robot/workspace2/RoboCup2016/RoboCup2016/GoalKeeper2016/calibration.txt";
 
 static Scalar minWhiteHSV = Scalar(0, 0, 170);
 static Scalar maxWhiteHSV = Scalar(255, 50, 255);

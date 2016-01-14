@@ -31,7 +31,7 @@ void Calibrator::Calibrate()
 
 		// Close the calibrator & save settings by clicking 'q'.
 		// Close without saving by clicking 'z'
-		char exitKey = waitKey(30);
+		char exitKey = waitKey(20);
 		if (exitKey == 'q')
 		{
 			WriteCalibrationToFile();
@@ -271,7 +271,8 @@ void Calibrator::InitializeWindow()
 {
 	namedWindow(ImageWindow, CV_WINDOW_AUTOSIZE);
 	namedWindow(CalibrationWindow, CV_WINDOW_AUTOSIZE);
-	createTrackbar(TrackbarGreenOrWhite, ImageWindow, 0, 1);
+	int zero = 0;
+	createTrackbar(TrackbarGreenOrWhite, ImageWindow, &zero, 1);
 	setMouseCallback(ImageWindow, onMouse, 0);
 }
 

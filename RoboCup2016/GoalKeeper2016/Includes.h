@@ -6,7 +6,9 @@
 #include <math.h>
 #include <string.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <unistd.h>
+#include <csignal>
 using namespace std;
 
 // OpenCV includes

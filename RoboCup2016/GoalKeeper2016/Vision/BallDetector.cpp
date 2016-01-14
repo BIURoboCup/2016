@@ -76,6 +76,7 @@ DetectedObject* BallDetector::FindBall(Mat& inputImage)
 		{
 
 			minEnclosingCircle(Mat(_contours[i]),_center[i],_radius[i]);
+			circle(masked_ball, _center[i], _radius[i], Colors::Blue, 2);
 
 			double area =  contourArea(_contours[i]);
 
@@ -85,6 +86,8 @@ DetectedObject* BallDetector::FindBall(Mat& inputImage)
 				max_radius = _radius[i];
 				max_center = _center[i];
 			}
+
+//			ImageShowOnDebug("Ball Contours", masked_ball);
 		}
 
 		if (max_radius < 0.0f || max_radius > 10000.0f)

@@ -1,5 +1,14 @@
 #include "Vision.h"
 
+// Boolean which is true while the program wasn't shut down.
+// SIGTERM catching set it to false, causing the program to exit.
+bool RunVisionThread = true;
+
+void SigTermHandler(int signal)
+{
+	cout << "Waiting until next frame and killing" << endl;
+	RunVisionThread = false;
+}
 
 void* VisionActionAsync(void*);
 
@@ -11,6 +20,8 @@ m_gateSharedMemory(GateDetector::GetDefault()), m_ballSharedMemory(BallDetector:
 
 Vision::~Vision()
 {
+	destroyAllWindows();
+	Vision::m_instance = NULL;
 }
 
 Vision* Vision::m_instance = NULL;
@@ -53,7 +64,7 @@ void ParseLineFromCalibrationFile(string line)
 
 void Vision::ReadCalibrationFromFile()
 {
-	static const char* calibrationFilePath = "/home/laptopyellow/Desktop/RoboCup2016/RoboCup2016/RoboCup2016/GoalKeeper2016/calibration.txt";
+	static const char* calibrationFilePath = "/home/robot/workspace2/RoboCup2016/RoboCup2016/GoalKeeper2016/calibration.txt";
 	string line;
 	ifstream myfile(calibrationFilePath);
 
@@ -74,9 +85,11 @@ void Vision::ReadCalibrationFromFile()
 
 void* VisionActionAsync(void*)
 {
+	signal(SIGTERM, SigTermHandler);
+
 	Vision* vision = Vision::GetInstance();
 
-	const string outputFile = "/home/laptopyellow/Desktop/RoboCup2016/RoboCup2016/RoboCup2016/GoalKeeper2016/demo.avi";
+	const string outputFile = "/home/robot/workspace2/RoboCup2016/RoboCup2016/GoalKeeper2016/demo.avi";
 
 	VideoCapture videoCapture;
 	VideoWriter outputVideo;
@@ -84,7 +97,7 @@ void* VisionActionAsync(void*)
 	vision->OpenCamera(videoCapture);
 	outputVideo.open(outputFile, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH,FRAME_HEIGHT), true);
 
-	while (true)
+	while (RunVisionThread)
 	{
 		Mat currentFrame;
 		videoCapture >> currentFrame;
@@ -106,9 +119,9 @@ void* VisionActionAsync(void*)
 		outputVideo.write(currentFrame);
 	}
 
+	videoCapture.release();
 	return NULL;
 }
-
 
 void Vision::RunVisionThread()
 {

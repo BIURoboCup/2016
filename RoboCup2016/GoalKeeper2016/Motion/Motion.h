@@ -23,6 +23,11 @@ public:
 	// Returns true as long as any motion is being done
 	bool IsRunning();
 	void WaitForActionFinish();
+	void FreeAllEngines();
+
+private:
+	LinuxCM730* m_linuxCM730;
+	CM730* m_cm730;
 };
 
 
