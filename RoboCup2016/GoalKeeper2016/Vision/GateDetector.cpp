@@ -1,5 +1,15 @@
 #include "GateDetector.h"
 
+GateDetector::GateDetector()
+{
+
+}
+
+GateDetector::~GateDetector()
+{
+
+}
+
 /*****************************************************************************************
 * Method Name: FindGate
 * Description: The function search for a couple of white vertical rectangles, whose buttom points

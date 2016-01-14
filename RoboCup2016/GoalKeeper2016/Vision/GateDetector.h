@@ -6,6 +6,8 @@ using namespace cv;
 class GateDetector
 {
 public:
+	GateDetector();
+	~GateDetector();
 	DetectedObject* FindGate(Mat& inputImage);
 
 private:
