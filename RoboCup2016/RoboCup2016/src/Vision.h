@@ -106,7 +106,7 @@ public:
 
 	//////////////////////////////////////////
 	//Find Ball
-	Ball Find_Ball(Mat im1);
+	Ball Find_Ball(Mat& im1);
 
 
 };

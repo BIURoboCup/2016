@@ -51,7 +51,7 @@ Vision::~Vision()
 *****************************************************************************************/
 void Vision::GetImage(Mat& Im)
 {
-	capture.read(Im);
+	capture >> Im;
 	key=waitKey(1);
 }
 
@@ -71,7 +71,6 @@ void Vision::OpenCamera()
 
 	capture.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
 	capture.set(CV_CAP_PROP_FRAME_HEIGHT,FRAME_HEIGHT);
-
 
 	while (!capture.open(0))
 	{
@@ -119,7 +118,9 @@ void Vision::ShowImage(Mat& Im)
 }
 
 
-/*****************************************************************************************
+/*****************************************************Trackbar( "To file", "Stream", &m_save_file,1,0);
+	createTrackbar( "Calibrate", "Stream", &m_calibrate,1,0);
+	setMouseCallback("Stream",Vision::onMouse, 0);************************************
 * Method Name: CloseCamera
 * Description:
 * Arguments: None
@@ -516,7 +517,7 @@ void Vision::LoadColorsFromFile()
 * Update: 2015
 *****************************************************************************************/
 
-Ball Vision::Find_Ball(Mat im1)
+Ball Vision::Find_Ball(Mat& im1)
 {
 	//return Ball();
 
@@ -533,7 +534,7 @@ Ball Vision::Find_Ball(Mat im1)
 	// Ball value range:
 	int vBall[6] = {21, 0 ,0,
 				73, 91, 255};
-	int gblur = 1;	// Guassian blur
+	int gblur = 1;	// Guassian bl1ur
 	int mblur = 7;	// Median Blur
 	int canny_parm[2] = {100,200};
 	int par[2] = {100, 50};	// 2 Parameters for cv--Hough ball detection
@@ -720,6 +721,7 @@ Ball Vision::Find_Ball(Mat im1)
 		ballstruct.found= false;	//this for the error
 	}
 
+	im1 = im1_info;
 	return ballstruct;
 
 }
@@ -885,7 +887,7 @@ Ball Vision::Find_Ball(Mat im1)
 			max_radius = _radius[i];
 			max_center = _center[i];
 		}
-
+circ
 
 		//cout << i <<  ") " << area/(PI*powf(_radius[i],2))
 		//		<< " (" << _center[i].x << "," << _center[i].y << ")" <<

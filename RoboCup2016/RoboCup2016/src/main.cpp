@@ -144,7 +144,7 @@ Head::GetInstance()->m_Joint.SetEnableHeadOnly(true, true);
 		else if (c == '1')
 		{
 			writeToLog(logFile,"kick");
-			Action::GetInstance()->Start(2);
+			Action::GetInstance()->Start(4);
 			while(Action::GetInstance()->IsRunning()) usleep(8*1000);
 		}
 		else if(c == '2')
@@ -250,6 +250,10 @@ void* VisionThread(void*)
 {
 	Vision vis;
     vis.OpenCamera();
+
+    VideoWriter outputVideo;
+    const string outputFile = "//home/robot/Desktop/rami_lihen/demo.avi";
+    outputVideo.open(outputFile, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH,FRAME_HEIGHT), true);
     vis.CreateStreamWindow();
     S_BrainBall BrainBallCounter;
 
@@ -264,6 +268,7 @@ void* VisionThread(void*)
     while (runthr)
     {
     	vis.GetImage(m);
+    	//outputVideo.write(m);
     	if( vis.key == 'q')
     			playing = vis.key;
 
@@ -300,9 +305,8 @@ void* VisionThread(void*)
 
 //////////////////////////////////////////////////////////////////////////////
 
-
     	ball = vis.Find_Ball(m);
-
+    	outputVideo.write(m);
     	//updating machine learn array
     	int xIncreasePlace = ((int)ball.center.x)/65;
     	if (BrainBallCounter.x_place[xIncreasePlace] < 20 )
@@ -743,10 +747,8 @@ void play()
 
 				GoStop();
 				writeToLog(logFile,"Kick");
-				Action::GetInstance()->Start(1);
-				while(Action::GetInstance()->IsRunning()) usleep(8*1000);
 
-				Action::GetInstance()->Start(2);
+				Action::GetInstance()->Start(4);
 				while(Action::GetInstance()->IsRunning()) usleep(8*1000);
 			}
 

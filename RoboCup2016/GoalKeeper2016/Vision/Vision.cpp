@@ -103,7 +103,7 @@ void* VisionActionAsync(void*)
 		videoCapture >> currentFrame;
 
 		// Close the Frame & save settings by clicking 'q'.
-		char exitKey = waitKey(30);
+		char exitKey = waitKey(20);
 		if (exitKey == 'q')
 		{
 			break;
