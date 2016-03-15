@@ -64,7 +64,7 @@ public:
 	//Global
     VideoCapture capture;
 
-	void 		OpenCamera();
+	void 		OpenFlyCapCamera();
 	void 		GetImage(Mat& Im);
 	void 		ShowImage(Mat& Im);
 	void 		CreateStreamWindow();

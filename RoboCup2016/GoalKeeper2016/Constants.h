@@ -10,6 +10,8 @@
 #ifndef SRC_CONSTS_H_
 #define SRC_CONSTS_H_
 
+#define ImageWindowName "Image"
+
 /*****************************************************************************************
 * Owners: All
 * Files affected:

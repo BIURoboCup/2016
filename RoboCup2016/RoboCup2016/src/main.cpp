@@ -9,9 +9,14 @@
 #include "opencv2/flann/logger.h"
 void 		freeAllEngines(Robot::CM730 *cm730);
 string  	convertIntToString(int number);
-pthread_t 	VisionT = 0;
-bool 		runthr= true;
+double compass_Gyro(CM730 *cm730, int id, double current_angel);
 void* 		VisionThread(void*);
+void* 		gyroThread(void*);
+bool 		runthr= true;
+pthread_t 	VisionT = 0;
+pthread_t 	gyroT = 0;
+double angel = 0;
+
 
 S_StateStruct StateList[] =
 {
@@ -36,7 +41,7 @@ sem_t ball_sem;
 S_BrainBall BrainBall;
 E_State Robotstate = NOP;
 
-void change_current_dir()
+void ChangeCurrentDir()
 {
     char exepath[1024] = {0};
     if(readlink("/proc/self/exe", exepath, sizeof(exepath)) != -1)
@@ -72,7 +77,7 @@ int main(void)
 
 
     printf( "\n===== Action script for DARwIn =====\n\n");
-    change_current_dir();
+    ChangeCurrentDir();
     minIni* ini = new minIni(INI_FILE_PATH);
     Action::GetInstance()->LoadFile(MOTION_FILE_PATH);
 
@@ -111,7 +116,8 @@ int main(void)
     cm730.WriteByte(CM730::P_LED_PANNEL, 0x02, NULL);
    MotionManager::GetInstance()->ResetGyroCalibration();
 
-   pthread_create(&VisionT, NULL, VisionThread,(void *) NULL);
+   //pthread_create(&VisionT, NULL, VisionThread,(void *) NULL);
+     pthread_create(&gyroT, NULL, gyroThread,(void *) NULL);
 
     printf("Press the ENTER key to begin!\n");
     getchar();
@@ -245,11 +251,22 @@ Head::GetInstance()->m_Joint.SetEnableHeadOnly(true, true);
 }
 
 
+void* gyroThread(void*)
+{
+
+	while(runthr)
+	{
+		angel = compass_Gyro(&cm730,CM730::ID_CM,angel);
+		printf("gyroThread angel =  %f\n\n",angel);
+	}
+
+}
+
 
 void* VisionThread(void*)
 {
 	Vision vis;
-    vis.OpenCamera();
+    vis.OpenFlyCapCamera();
 
     VideoWriter outputVideo;
     const string outputFile = "//home/robot/Desktop/rami_lihen/demo.avi";
@@ -546,6 +563,39 @@ void play()
 	    		headPosCheck = 4;
 	    		SetTilt(30,-15);  //left
 				HeadPosition = LookingLeft;
+			writeToLog(logFile,"State == LookForBall");
+
+	    	//sleep(1);qqq
+	    	if (ball1.found)
+	    	{
+	    		State = GoToBall;
+	    		writeToLog(logFile,"State == LookForBall - found");
+	    		//headPosCheck = 1;
+	    	}
+	    	else if (headPosCheck == 1)
+	    	{
+	    		writeToLog(logFile,"State == LookForBall - LookingStraight");
+	    		headPosCheck = 2;
+	    		SetTilt(0,0);  //straight
+				HeadPosition = LookingStraight;
+				writeToLog(logFile,"HeadPosition = LookingStraight");
+	    		sleep(2);
+	    	}
+	    	else if (headPosCheck == 2)
+	    	{
+	    		writeToLog(logFile,"State == LookForBall - LookingStraightDown");
+	    		headPosCheck = 3;
+	    		SetTilt(0,-25);  //back to center
+				HeadPosition = LookingStraightDown;
+				writeToLog(logFile,"HeadPosition = LookingStraightDown");
+	    		sleep(2);
+	    	}
+	    	else if (headPosCheck == 3)
+	    	{
+	    		writeToLog(logFile,"State == LookForBall - LookingLeft");
+	    		headPosCheck = 4;
+	    		SetTilt(30,-15);  //left
+				HeadPosition = LookingLeft;
 				writeToLog(logFile,"HeadPosition = LookingLeft");
 	    		sleep(2);
 	    	}
@@ -610,6 +660,13 @@ void play()
 
 		else if (State == GoToBall)
 		{
+			/*//for demo
+			GoTo(0,StateList[State].stateString,ball1.x_ball_spot); //forward
+			if(ball1.center.y > 360){
+				State=GoForKick;
+			}*/
+			//till demo
+			///*
 			writeToLog(logFile,"State == GoToBall");
 
 			int dir=ball1.x_ball_spot;
@@ -693,8 +750,9 @@ void play()
 				{
 					GoTo(8-dir,StateList[State].stateString,ball1.x_ball_spot);
 				}
-				else if(ball1.x_ball_spot > 5)
+				else if(ball1.x_ball_spot>5) //check older versions
 				{
+					writeToLog(logFile,"HeHead::GetInstance()->m_Joint.SetEnableHeadOnly(true, true);_ball_spot > 5");
 					GoTo(5-(dir%5),StateList[State].stateString,ball1.x_ball_spot);
 				}
 
@@ -703,7 +761,7 @@ void play()
 				writeToLog(logFile,"HeadPosition = LookingStraight");
 				sleep(1);
 			}
-
+			//*/
 			sleep(1);
 		}
 
@@ -742,7 +800,7 @@ void play()
 //				if (ball1.center.y<420)
 //					sleep(15);
 //				sleep(11)
-					sleep(5);
+					sleep(20);
 
 
 				GoStop();
@@ -767,7 +825,7 @@ void play()
 	playing='j';
 	GoStop();
 }
-
+}
 
 
 
@@ -891,3 +949,111 @@ string convertIntToString(int number){
 	convert << number;
 	return convert.str();
 }
+
+string convertDoubleToString(double number){
+	ostringstream convert;
+	convert << number;
+	return convert.str();
+}
+
+
+
+double compass_Gyro(CM730 *cm730, int id, double current_angel)
+{
+	unsigned char table[128];
+	int addr;
+	int value_Gyro_X,value_Gyro_Y,value_Gyro_Z;//value_ACC_X,value_ACC_Y,value_ACC_Z;
+	int gyroValue = 0;
+	double integreted_rate=current_angel;
+	writeToLog(logFile,"integreted_rate before: ",convertDoubleToString(integreted_rate));
+    double angle = 0;
+	double gyroRate = 0;
+	//The conversion graph for Gyrorate DPS is: Gyrorate=MAX_DPS/OFFSET*GyroValue-MAX_DPS
+	int const max_dps=1600;
+	int const offset=512;
+
+
+//	while(1)
+//	{
+//		if(id == CM730::ID_CM) // Sub board
+//		{
+//			if(cm730 -> ReadWord(id,CM730::P_GYRO_X_L,&value_Gyro_X,0) != CM730::SUCCESS)
+//			{
+//				printf(" Can not read table!\n");
+//				return(-1);
+//			}
+//			if(cm730 -> ReadWord(id,CM730::P_GYRO_Y_L,&value_Gyro_Y,0) != CM730::SUCCESS)
+//						{
+//							printf(" Can not read table!\n");
+//							return(-1);
+//						}
+//			if(cm730 -> ReadWord(id,CM730::P_GYRO_Z_L,&value_Gyro_Z,0) != CM730::SUCCESS)
+//						{
+//							printf(" Can not read table!\n");
+//							return(-1);
+//						}
+//
+//			printf( "\n" );
+//			printf( " [EEPROM AREA]\n" );
+//
+//		    gyroValue = value_Gyro_Z;
+//		    printf("gyroValueX: %d\n",gyroValue);
+//		    printf("gyroValueY: %d\n",value_Gyro_Y);
+//		    printf("gyroValueZ: %d\n",value_Gyro_Z);
+//		    gyroRate = (float(gyroValue*max_dps)/offset - max_dps) / 3.2; // Sensitivity from data-sheet
+//		    printf("gyroRate:  %f\n",gyroRate);
+//		    integreted_rate = integreted_rate + (gyroRate / 80.0);
+//		    if (integreted_rate < 0){
+//		    	integreted_rate += 360;
+//		    }
+//		    int div = integreted_rate/360;
+//			angle = integreted_rate - div*360;
+//		    //angle = integreted_rate/360
+//		    printf("angle:     %f\n",angle);
+//		    printf("%5f\n",angle);
+//		    printf("\n");
+//
+//		    sleep(0.001);
+//		}
+//	}
+//	return(0);
+
+	if (cm730->ReadWord(id, CM730::P_GYRO_X_L, &value_Gyro_X, 0)
+			!= CM730::SUCCESS) {
+		printf(" Can not read table!\n");
+		return (-1);
+	}
+	if (cm730->ReadWord(id, CM730::P_GYRO_Y_L, &value_Gyro_Y, 0)
+			!= CM730::SUCCESS) {
+		printf(" Can not read table!\n");
+		return (-1);
+	}
+	if (cm730->ReadWord(id, CM730::P_GYRO_Z_L, &value_Gyro_Z, 0)
+			!= CM730::SUCCESS) {
+		printf(" Can not read table!\n");
+		return (-1);
+	}
+
+	printf("\n");
+	printf(" [EEPROM AREA]\n");
+
+	gyroValue = value_Gyro_Z;
+	printf("gyroValueZ: %d\n", value_Gyro_Z);
+	writeToLog(logFile,"gyroValueZ:      ",convertIntToString(gyroValue));
+	gyroRate = (float(gyroValue * max_dps) / offset - max_dps) / 3.2; // Sensitivity from data-sheet
+	printf("gyroRate:  %f\n", gyroRate);
+	writeToLog(logFile,"gyroRate:         ",convertDoubleToString(gyroRate));
+	double a = (gyroRate / 80.0);
+	writeToLog(logFile,"a       :         ",convertDoubleToString(a));
+
+	integreted_rate = integreted_rate + a ;
+	printf("angle:     %f\n", integreted_rate);
+	writeToLog(logFile,"integreted_rate:  ",convertDoubleToString(integreted_rate));
+	writeToLog(logFile,"\n");
+
+
+	sleep(0.001);
+
+	return integreted_rate;
+}
+

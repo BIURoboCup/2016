@@ -1,13 +1,21 @@
 #include "Vision.h"
 
-// Boolean which is true while the program wasn't shut down.
-// SIGTERM catching set it to false, causing the program to exit.
-bool RunVisionThread = true;
+
+struct VisionException : public exception
+{
+   string message;
+   VisionException(string exceptionMessage) : message(exceptionMessage) {}
+   ~VisionException() throw () {}
+
+	const char* what() const throw () {
+		return message.c_str();
+	}
+};
 
 void SigTermHandler(int signal)
 {
 	cout << "Waiting until next frame and killing" << endl;
-	RunVisionThread = false;
+	Vision::GetInstance()->TerminateVisionThread();
 }
 
 void* VisionActionAsync(void*);
@@ -22,6 +30,7 @@ Vision::~Vision()
 {
 	destroyAllWindows();
 	Vision::m_instance = NULL;
+	CloseFlyCapCamera();
 }
 
 Vision* Vision::m_instance = NULL;
@@ -83,74 +92,123 @@ void Vision::ReadCalibrationFromFile()
 	}
 }
 
-void* VisionActionAsync(void*)
+void RunVision()
 {
+//	pthread_t visionThread;
+//
+//	if(1 == pthread_create(&visionThread, NULL, VisionActionAsync, NULL))
+//	{
+//		fprintf(stderr, "Couldn't create Vision thread\n");
+//		exit(1);
+//	}
+//}
+//
+//void* VisionActionAsync(void*)
+//{
+	Vision::GetInstance()->OpenFlyCapCamera();
+
 	signal(SIGTERM, SigTermHandler);
 
-	Vision* vision = Vision::GetInstance();
+	Vision::GetInstance()->IsVisionThreadRunning = true;
 
-	const string outputFile = "/home/robot/workspace2/RoboCup2016/RoboCup2016/GoalKeeper2016/demo.avi";
+	const string outputFile =
+			"/home/robot/workspace2/RoboCup2016/RoboCup2016/GoalKeeper2016/demo.avi";
 
-	VideoCapture videoCapture;
 	VideoWriter outputVideo;
+	outputVideo.open(outputFile, CV_FOURCC('M', 'J', 'P', 'G'), 10,
+			Size(FRAME_WIDTH, FRAME_HEIGHT), true);
 
-	vision->OpenCamera(videoCapture);
-	outputVideo.open(outputFile, CV_FOURCC('M','J','P','G'), 10, Size(FRAME_WIDTH,FRAME_HEIGHT), true);
-
-	while (RunVisionThread)
+	// capture loop
+	char key = 0;
+	while (key != 'q' && Vision::GetInstance()->IsVisionThreadRunning == true)
 	{
 		Mat currentFrame;
-		videoCapture >> currentFrame;
+		Vision::GetInstance()->GetFrameFromFlyCap(currentFrame);
+		Vision::GetInstance()->ProcessCurrentFrame(currentFrame);
 
-		// Close the Frame & save settings by clicking 'q'.
-		char exitKey = waitKey(20);
-		if (exitKey == 'q')
-		{
-			break;
-		}
-
-		DetectedObject* detectedGate = vision->m_gateDetector.FindGate(currentFrame);
-		detectedGate->Draw(currentFrame);
-		DetectedObject* detectedBall = vision->m_ballDetector.FindBall(currentFrame);
-		detectedBall->Draw(currentFrame);
-
-		imshow("Output", currentFrame);
-
+		imshow("Outout", currentFrame);
+		key = waitKey(30);
 		outputVideo.write(currentFrame);
 	}
 
-	videoCapture.release();
-	return NULL;
+	Vision::GetInstance()->CloseFlyCapCamera();
 }
 
-void Vision::RunVisionThread()
+void Vision::ProcessCurrentFrame(Mat& currentFrame)
 {
-	pthread_t visionThread;
+	DetectedObject* detectedGate = m_gateDetector.FindGate(
+			currentFrame);
+	detectedGate->Draw(currentFrame);
+	DetectedObject* detectedBall = m_ballDetector.FindBall(
+			currentFrame);
+	detectedBall->Draw(currentFrame);
+}
 
-	if(1 == pthread_create(&visionThread, NULL, VisionActionAsync, NULL))
-	{
-		fprintf(stderr, "Couldn't create Vision thread\n");
-		exit(1);
+void Vision::TerminateVisionThread()
+{
+	IsVisionThreadRunning = false;
+}
+
+void Vision::GetFrameFromFlyCap(Mat& currentFrame)
+ {
+	// Get the image
+	FlyCapture2::Image rawImage;
+	FlyCapture2::Error error = flyCapCamera.RetrieveBuffer(&rawImage);
+	if (error != FlyCapture2::PGRERROR_OK) {
+		throw VisionException("capture error");
+	}
+
+	IplImage* image = ConvertImageToOpenCV(&rawImage);
+
+	currentFrame = cv::cvarrToMat(image);
+
+//	// convert to rgb
+//	FlyCapture2::Image rgbImage;
+//	rawImage.Convert(FlyCapture2::PIXEL_FORMAT_BGR, &rgbImage);
+//
+//	// convert to OpenCV Mat
+//	unsigned int rowBytes = (double) rgbImage.GetReceivedDataSize()
+//			/ (double) rgbImage.GetRows();
+//	currentFrame = Mat(rgbImage.GetRows(), rgbImage.GetCols(), CV_8UC3,
+//			rgbImage.GetData(), rowBytes);
+}
+
+void Vision::OpenFlyCapCamera()
+{
+	FlyCapture2::Error error;
+	FlyCapture2::CameraInfo camInfo;
+
+	// Connect the camera
+	error = flyCapCamera.Connect(0);
+	if (error != FlyCapture2::PGRERROR_OK) {
+		throw VisionException("Failed to connect to camera");
+	}
+
+	// Get the camera info and print it out
+	error = flyCapCamera.GetCameraInfo(&camInfo);
+	if (error != FlyCapture2::PGRERROR_OK) {
+		throw VisionException("Failed to get camera info from camera");
+	}
+	cout << camInfo.vendorName << " " << camInfo.modelName << " "
+			<< camInfo.serialNumber << endl;
+
+	error = flyCapCamera.StartCapture();
+	if (error == FlyCapture2::PGRERROR_ISOCH_BANDWIDTH_EXCEEDED) {
+		throw VisionException("Bandwidth exceeded");
+	} else if (error != FlyCapture2::PGRERROR_OK) {
+		throw VisionException("Failed to start image capture");
 	}
 }
 
-void Vision::OpenCamera(VideoCapture& videoCapture)
+void Vision::CloseFlyCapCamera()
 {
-	int tries = 0;
-
-	videoCapture.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
-	videoCapture.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
-
-
-	while (!videoCapture.open(0))
-	{
-		printf("trying to open camera\n");
-		if (++tries > 10)
-		{
-			printf("Couldn't open camera capture, gave up\n");
-			throw new string("Couldn't open camera");
-		}
-		printf("couldn't open camera capture, try #%d\n", tries);
+	FlyCapture2::Error error;
+	error = flyCapCamera.StopCapture();
+	if (error != FlyCapture2::PGRERROR_OK) {
+		// This may fail when the camera was removed, so don't show
+		// an error message
 	}
+
+	flyCapCamera.Disconnect();
 }
 

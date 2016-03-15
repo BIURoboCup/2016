@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <libgen.h>
 #include <csignal>
 using namespace std;
 
@@ -15,6 +16,7 @@ using namespace std;
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/flann/miniflann.hpp"
+#include "flycapture/FlyCapture2.h"
 using namespace cv;
 using namespace cv::flann;
 

@@ -1,33 +1,43 @@
 #include "MotionIncludes.h"
 
+
+#define MOTION_FILE_PATH    "/home/robot/Desktop/Walk/Data/motion_4096.bin"
+#define INI_FILE_PATH    "/home/robot/Robot1/Data/config.ini"
+
 #pragma once
 
-struct S_HeadTilt
+class HeadTilt
 {
+public:
+	HeadTilt(float tilt, float pan) : Tilt(tilt), Pan(pan) {}
+
 	// Tilt is up-down. Pan is right-left.
-	int Tilt;
-	int Pan;
+	float Tilt;
+	float Pan;
 };
 
 class Motion
 {
 public:
-	Motion();
+	// Singletone
+	static Motion* GetInstance();
+
 	~Motion();
 
 	void WalkStraight(int cmToWalk);
 	
-	void SetHeadTilt(S_HeadTilt headTilt);
-	S_HeadTilt GetHeadTilt();
+	void SetHeadTilt(HeadTilt headTilt);
+	HeadTilt GetHeadTilt();
 
 	// Returns true as long as any motion is being done
-	bool IsRunning();
+	bool IsActionRunning();
 	void WaitForActionFinish();
 	void FreeAllEngines();
+	void StartEngines();
 
 private:
-	LinuxCM730* m_linuxCM730;
-	CM730* m_cm730;
+	Motion();
+	static Motion* m_instance;
 };
 
 

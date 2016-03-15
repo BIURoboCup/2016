@@ -1,56 +1,84 @@
 #include "Motion.h"
 #include "MotionIncludes.h"
 
+Motion* Motion::m_instance = NULL;
+Motion* Motion::GetInstance()
+{
+    if(m_instance == NULL)
+    {
+    	m_instance = new Motion();
+        return m_instance;
+    }
+    else
+    {
+        return m_instance;
+    }
+}
+
+void ChangeCurrentDir()
+{
+    char exepath[1024] = {0};
+    if(readlink("/proc/self/exe", exepath, sizeof(exepath)) != -1)
+        chdir(dirname(exepath));
+}
 
 Motion::Motion()
 {
-	m_linuxCM730 = new LinuxCM730("/dev/ttyUSB0");
-	m_cm730 = new CM730(m_linuxCM730);
+}
 
-	const string INI_FILE_PATH = "/home/robot/Robot1/Data/config.ini";
+LinuxCM730 m_linuxCM730("/dev/ttyUSB0");
+CM730 m_cm730(&m_linuxCM730);
+LinuxMotionTimer linuxMotionTimer;
+
+void Motion::StartEngines()
+{
+	printf("===== Action script for DARwIn =====\n\n");
+	ChangeCurrentDir();
 	minIni* ini = new minIni(INI_FILE_PATH);
-	Walking::GetInstance()->LoadINISettings(ini);
-	MotionManager::GetInstance()->LoadINISettings(ini);
-
-	// Motion config file
-	Action::GetInstance()->LoadFile("/home/robot/Robot1/Data/motion_4096.bin");
+	Action::GetInstance()->LoadFile(MOTION_FILE_PATH);
 
 	//////////////////// Framework Initialize ////////////////////////////
-	if (MotionManager::GetInstance()->Initialize(m_cm730) == false)
-	{
-		m_linuxCM730->SetPortName("/dev/ttyUSB1");
-		if (MotionManager::GetInstance()->Initialize(m_cm730) == false)
-		{
-			cout << "Fail to initialize Motion Manager!\n";
+	if (MotionManager::GetInstance()->Initialize(&m_cm730) == false) {
+		m_linuxCM730.SetPortName("/dev/ttyUSB1");
+		if (MotionManager::GetInstance()->Initialize(&m_cm730) == false) {
+			printf("Fail to initialize Motion Manager!\n");
 		}
 	}
+	Walking::GetInstance()->LoadINISettings(ini);
+	usleep(100);
+	MotionManager::GetInstance()->LoadINISettings(ini);
 
-    MotionManager::GetInstance()->AddModule((MotionModule*)Action::GetInstance());
-    MotionManager::GetInstance()->AddModule((MotionModule*)Head::GetInstance());
-    MotionManager::GetInstance()->AddModule((MotionModule*)Walking::GetInstance());
-    LinuxMotionTimer linuxMotionTimer;
-    linuxMotionTimer.Initialize(MotionManager::GetInstance());
-    linuxMotionTimer.Start();
-    /////////////////////////////////////////////////////////////////////
+	MotionManager::GetInstance()->AddModule(
+			(MotionModule*) Action::GetInstance());
+	MotionManager::GetInstance()->AddModule(
+			(MotionModule*) Head::GetInstance());
+	MotionManager::GetInstance()->AddModule(
+			(MotionModule*) Walking::GetInstance());
 
-    Walking::GetInstance()->m_Joint.SetEnableBody(false);
-    Head::GetInstance()->m_Joint.SetEnableBody(false);
-    Action::GetInstance()->m_Joint.SetEnableBody(true);
-    MotionManager::GetInstance()->SetEnable(true);
+	linuxMotionTimer.Initialize(MotionManager::GetInstance());
+	linuxMotionTimer.Start();
+	/////////////////////////////////////////////////////////////////////
 
-    Action::GetInstance()->Start(1);     //Init(stand up) pose
+	Walking::GetInstance()->m_Joint.SetEnableBody(false);
+	Head::GetInstance()->m_Joint.SetEnableBody(false);
+	Action::GetInstance()->m_Joint.SetEnableBody(true);
+	MotionManager::GetInstance()->SetEnable(true);
 
-    Action::GetInstance()->Brake();
-    while(Action::GetInstance()->IsRunning()) usleep(8*1000);
+	Action::GetInstance()->Start(1);     //Init(stand up) pose
 
-    m_cm730->WriteByte(CM730::P_LED_PANNEL, 0x02, NULL);
-    MotionManager::GetInstance()->ResetGyroCalibration();
+	Action::GetInstance()->Brake();
+	while (Action::GetInstance()->IsRunning())
+		usleep(8 * 1000);LinuxMotionTimer linuxMotionTimer;
+
+	m_cm730.WriteByte(CM730::P_LED_PANNEL, 0x02, NULL);
+	MotionManager::GetInstance()->ResetGyroCalibration();
+
+	Head::GetInstance()->m_Joint.SetEnableHeadOnly(true, true);
 }
 
 Motion::~Motion()
 {
-	delete m_cm730;
-	delete m_linuxCM730;
+
 }
 
 void Motion::WalkStraight(int cmToWalk)
@@ -60,21 +88,20 @@ void Motion::WalkStraight(int cmToWalk)
 
 void Motion::FreeAllEngines()
 {
-	m_cm730->WriteByte(CM730::ID_CM, MX28::P_TORQUE_ENABLE, 0, 0);
+	m_cm730.WriteByte(CM730::ID_CM, MX28::P_TORQUE_ENABLE, 0, 0);
 }
 
-void Motion::SetHeadTilt(S_HeadTilt headTilt)
+void Motion::SetHeadTilt(HeadTilt headTilt)
 {
-	Head::GetInstance()->MoveByAngle(headTilt.Pan,headTilt.Tilt);
+	Head::GetInstance()->MoveByAngle(headTilt.Pan, headTilt.Tilt);
 	WaitForActionFinish();
 }
 
-S_HeadTilt Motion::GetHeadTilt()
+HeadTilt Motion::GetHeadTilt()
 {
-	S_HeadTilt headTilt;
-	headTilt.Tilt = MotionStatus::m_CurrentJoints.GetAngle(JointData::ID_HEAD_TILT);
-	headTilt.Pan =  MotionStatus::m_CurrentJoints.GetAngle(JointData::ID_HEAD_PAN);
-	return headTilt;
+	float tilt = MotionStatus::m_CurrentJoints.GetAngle(JointData::ID_HEAD_TILT);
+	float pan =  MotionStatus::m_CurrentJoints.GetAngle(JointData::ID_HEAD_PAN);
+	return HeadTilt(tilt, pan);
 }
 
 void Motion::WaitForActionFinish()
@@ -82,13 +109,13 @@ void Motion::WaitForActionFinish()
 	int usecondsBetweenSamples = 8*1000;
 
 	// Checks every 'usecondsBetweenSamples' if the action still running.
-	while(IsRunning())
+	while(IsActionRunning())
 	{
 		usleep(usecondsBetweenSamples);
 	};
 }
 
-bool Motion::IsRunning()
+bool Motion::IsActionRunning()
 {
-	return Walking::GetInstance()->IsRunning();
+	return Action::GetInstance()->IsRunning();
 }

@@ -4,16 +4,18 @@
 
 #pragma once
 
+void RunVision();
+
 class Vision
 {
 public:
 	// Singletone
 	static Vision* GetInstance();
 
-	void RunVisionThread();
-
 	DetectedObject* SafeGetDetectedBall();
 	DetectedObject* SafeGetDetectedGate();
+
+	void TerminateVisionThread();
 
 	~Vision();
 
@@ -23,7 +25,14 @@ public:
 	SharedMemory m_gateSharedMemory;
 	SharedMemory m_ballSharedMemory;
 
-	void OpenCamera(VideoCapture& videoCapture);
+	bool IsVisionThreadRunning;
+
+	void OpenFlyCapCamera();
+	void CloseFlyCapCamera();
+	void GetFrameFromFlyCap(Mat& frame);
+	void ProcessCurrentFrame(Mat& frame);
+
+	FlyCapture2::Camera flyCapCamera;
 
 private:
 	void ReadCalibrationFromFile();

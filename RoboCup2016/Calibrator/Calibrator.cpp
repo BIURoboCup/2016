@@ -9,7 +9,7 @@ Calibrator::Calibrator()
 		OpenCamera();
 		InitializeWindow();
 	}
-	catch (Exception ex)
+	catch (Exception& ex)
 	{
 		exit(1);
 	}

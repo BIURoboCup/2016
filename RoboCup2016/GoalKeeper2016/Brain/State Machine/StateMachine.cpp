@@ -1,0 +1,10 @@
+
+StateMachine::StateMachine()
+{
+
+}
+
+StateMachine::~StateMachine()
+{
+
+}

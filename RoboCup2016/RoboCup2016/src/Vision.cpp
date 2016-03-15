@@ -64,7 +64,7 @@ void Vision::GetImage(Mat& Im)
 * Return Values: None
 * Wrote: Roman & Gilad
 *****************************************************************************************/
-void Vision::OpenCamera()
+void Vision::OpenFlyCapCamera()
 {
 	//Init capture object
 	int tries = 0;

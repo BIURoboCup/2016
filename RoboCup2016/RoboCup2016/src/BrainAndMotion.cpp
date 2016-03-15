@@ -19,7 +19,7 @@ float GetTilt()
 	float tiltAngle,panAngle;
 	tiltAngle = MotionStatus::m_CurrentJoints.GetAngle(JointData::ID_HEAD_TILT);
 	panAngle =  MotionStatus::m_CurrentJoints.GetAngle(JointData::ID_HEAD_PAN);
-	//printf("tilt = %d  pan = %d\n",(int)tiltAngle,(int)panAngle);
+	printf("tilt = %d  pan = %d\n",(int)tiltAngle,(int)panAngle);
 	return ( tiltAngle /180 * M_PI_2 + M_PI_2 );
 }
 

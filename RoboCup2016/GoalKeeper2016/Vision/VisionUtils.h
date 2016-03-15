@@ -27,5 +27,6 @@ void ImageShowOnDebug(const string& winName, Mat image);
 void DrawPoint(Mat &image, Point2f &point, Scalar color = Scalar(0,0,255), int thickness = 1);
 void DrawRectangle(Mat &image, RotatedRect &rect, Scalar color = Scalar(0,0,255), int thickness = 1);
 void PrintStringOnImage(Mat &src, const char* string_to_print);
+IplImage* ConvertImageToOpenCV(FlyCapture2::Image* pImage);
 
 #endif

@@ -1,4 +1,5 @@
 #include "Vision/Vision.h"
+#include "Motion/Motion.h"
 
 void Debug()
 {
@@ -7,37 +8,41 @@ void Debug()
 	cin >> a;
 }
 
+
 int main(int argc, char* argv[])
 {
-	Vision* vision = Vision::GetInstance();
+	Motion::GetInstance()->StartEngines();
 
-	vision->RunVisionThread();
 
-	getchar();
+
+	//RunVision();
 
 	char key;
 	cout << "Do you want to free all the engines? [y/n]" << endl;
-	cin >> key ;
-	if(key == 'y' || key == 'Y')
-	{
-		//TODO: Call FreeAllEngines
+	cin >> key;
+	if (key == 'y' || key == 'Y') {
+		Motion::GetInstance()->FreeAllEngines();
 	}
 
-	delete vision;
-
-//	const char* filename = "C:\\Users\\arabinow\\git\\RoboCup2016\\Media\\Photos\\White Lines\\onepost.png";
-//	Mat inputImage = imread(filename, CV_LOAD_IMAGE_COLOR);
-//	if (inputImage.empty())
-//	{
-//		cout << "can not open " << filename << endl;
-//		return -1;
-//	}
-//
-//	DetectedObject* detectedGate;
-//	detectedGate = FindGate(inputImage);
-//	detectedGate->Draw(inputImage);
-//	imshow("gate", inputImage);
-//	waitKey(0);
 	return 0;
 }
+
+void RunBrainThread()
+{
+	pthread_t visionThread;
+
+	if(1 == pthread_create(&visionThread, NULL, BrainActionAsync, NULL))
+	{
+		fprintf(stderr, "Couldn't create Vision thread\n");
+		exit(1);
+	}
+}
+
+void* BrainActionAsync(void*)
+{
+
+
+}
+
+
 

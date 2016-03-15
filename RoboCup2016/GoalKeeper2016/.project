@@ -26,7 +26,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>0</id>
+			<id>1457551913574</id>
 			<name></name>
 			<type>10</type>
 			<matcher>
@@ -35,7 +35,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>0</id>
+			<id>1457551913576</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -44,7 +44,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>0</id>
+			<id>1457551913582</id>
 			<name></name>
 			<type>6</type>
 			<matcher>
@@ -53,4 +53,10 @@
 			</matcher>
 		</filter>
 	</filteredResources>
+	<variableList>
+		<variable>
+			<name>RoboCup2016</name>
+			<value>file:/home/robot/workspace2/RoboCup2016/RoboCup2016/RoboCup2016</value>
+		</variable>
+	</variableList>
 </projectDescription>
